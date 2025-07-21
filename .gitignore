@@ -1,0 +1,71 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# ONNX models (large files)
+models/*.onnx
+models/*.pb
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+.tmp/
+temp/
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# Pytest cache
+.pytest_cache/
+
+# MyPy cache
+.mypy_cache/
+
+# Node modules (if using any JS build tools)
+node_modules/
+
+# Documentation builds
+docs/_build/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Local configuration
+config.local.toml
+config.local.json
+
+# Database files
+*.db
+*.sqlite
+
+# Development and runtime files
+.pytest_cache/
+.coverage
+*.log
+.DS_Store
+Thumbs.db
