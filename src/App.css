@@ -10,8 +10,8 @@ body {
     sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #111827 !important;
-  color: #f9fafb !important;
+  background-color: #ffffff !important;
+  color: #111827 !important;
   overflow: hidden;
   margin: 0;
   padding: 0;
@@ -31,11 +31,11 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #374151;
+  background: #f9fafb;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #6b7280;
+  background: #d1d5db;
   border-radius: 4px;
 }
 
