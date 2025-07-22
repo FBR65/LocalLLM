@@ -45,6 +45,7 @@ export const PSTExplorer: React.FC<PSTExplorerProps> = ({
   const selectPstFolder = async () => {
     try {
       setError(null);
+      
       const selected = await open({
         directory: true,
         multiple: false,
@@ -137,49 +138,61 @@ export const PSTExplorer: React.FC<PSTExplorerProps> = ({
         </h2>
         
         {/* Ordnerauswahl */}
-        <div className="space-y-3">
-          <div className="flex gap-3">
+        <div className="kern-content-section">
+          <div className="kern-button-group">
             <button
               onClick={selectPstFolder}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="kern-button-primary flex items-center gap-2"
             >
               <FolderOpen className="w-4 h-4" />
-              PST-Ordner auswählen
+              <span>PST-Ordner auswählen</span>
             </button>
             
             <button
               onClick={() => setShowManualInput(!showManualInput)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+              className="kern-button-secondary flex items-center gap-2"
             >
               <FileText className="w-4 h-4" />
-              Manuell eingeben
+              <span>Manuell eingeben</span>
             </button>
             
             {pstFolder && (
               <button
                 onClick={() => loadPstFiles(pstFolder)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-lg hover:bg-green-200 transition-colors"
+                className="kern-button-secondary flex items-center gap-2"
                 disabled={isLoading}
+                style={{ 
+                  backgroundColor: isLoading ? 'var(--kern-neutral-200)' : undefined,
+                  opacity: isLoading ? 0.7 : 1
+                }}
               >
                 <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Neu laden
+                <span>Neu laden</span>
               </button>
             )}
           </div>
 
           {/* Manuelle Pfadeingabe */}
           {showManualInput && (
-            <div className="flex gap-2">
+            <div className="kern-button-group" style={{ marginTop: 'var(--kern-space-4)' }}>
               <input
                 type="text"
                 value={manualPath}
                 onChange={(e) => setManualPath(e.target.value)}
                 placeholder="z.B. C:\Users\frank\Documents\PST-Dateien"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="kern-input"
+                style={{ 
+                  flex: '1 1 300px',
+                  minWidth: '250px'
+                }}
               />
               <button
                 onClick={applyManualPath}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="kern-button-primary"
+                style={{ 
+                  minWidth: '120px',
+                  flexShrink: 0
+                }}
               >
                 Übernehmen
               </button>

@@ -100,76 +100,87 @@ export const ModelManager: React.FC<ModelManagerProps> = ({
                 }`}
                 onClick={() => handleModelSelect(model.id)}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{model.name}</h3>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPerformanceBadgeColor(model.performance_tier)}`}>
+                <div className="kern-model-card-layout">
+                  <div className="kern-model-content">
+                    {/* Titel-Bereich mit semantischer Trennung */}
+                    <div className="kern-model-header">
+                      <h3 className="kern-model-title">{model.name}</h3>
+                    </div>
+                    
+                    {/* Status-Bereich getrennt */}
+                    <div className="kern-model-status">
+                      <span className={`kern-performance-badge ${getPerformanceBadgeColor(model.performance_tier)}`}>
                         {model.performance_tier}
                       </span>
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                      <span className="kern-type-badge">
                         {model.model_type}
                       </span>
                     </div>
                     
-                    <p className="text-gray-600 mb-3 leading-relaxed">{model.description}</p>
+                    {/* Beschreibung */}
+                    <div className="kern-model-description">
+                      <p>{model.description}</p>
+                    </div>
                     
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
-                      <div className="flex items-center gap-1">
-                        <HardDrive className="w-4 h-4" />
+                    {/* Technische Specs */}
+                    <div className="kern-model-specs">
+                      <div className="kern-spec-item">
+                        <HardDrive className="kern-spec-icon" />
                         <span>{model.size}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Cpu className="w-4 h-4" />
+                      <div className="kern-spec-item">
+                        <Cpu className="kern-spec-icon" />
                         <span>{model.recommended_ram_gb} GB RAM empfohlen</span>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-1 mb-3">
+                    {/* Use Cases */}
+                    <div className="kern-model-usecases">
                       {model.use_cases.map((useCase, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded border"
-                        >
+                        <span key={index} className="kern-usecase-tag">
                           {useCase}
                         </span>
                       ))}
                     </div>
 
-                    <p className="text-xs text-gray-500 font-mono">{model.huggingface_id}</p>
+                    {/* HuggingFace ID */}
+                    <div className="kern-model-id">
+                      <p>{model.huggingface_id}</p>
+                    </div>
                   </div>
 
-                  <div className="ml-6 flex flex-col items-end gap-3">
+                  {/* Action-Bereich */}
+                  <div className="kern-model-actions">
                     {model.isDownloaded ? (
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full border border-green-200">
+                      <div className="kern-action-group">
+                        <span className="kern-status-installed">
                           Installiert
                         </span>
                         <button
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                          className="kern-button-primary"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleModelSelect(model.id);
                           }}
                         >
-                          <Settings className="w-4 h-4" />
+                          <Settings className="kern-button-icon" />
                           Laden
                         </button>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full border border-gray-200">
+                      <div className="kern-action-group">
+                        <span className="kern-status-notinstalled">
                           Nicht installiert
                         </span>
                         <button
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                          className="kern-button-secondary"
                           onClick={(e) => {
                             e.stopPropagation();
                             // TODO: Download implementieren
                             console.log('Download model:', model.id);
                           }}
                         >
-                          <Download className="w-4 h-4" />
+                          <Download className="kern-button-icon" />
                           Herunterladen
                         </button>
                       </div>

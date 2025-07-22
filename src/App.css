@@ -1,20 +1,87 @@
-/* App.css - Globale Styles für LocalLLM Desktop */
+/* App.css - KERN UX Design System für LocalLLM Desktop */
+@import '@kern-ux/native';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Override Tailwind's aggressive reset */
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #ffffff !important;
-  color: #111827 !important;
-  overflow: hidden;
+/* KERN UX Design Tokens */
+:root {
+  /* KERN UX Farben - Basierend auf deutschen Behörden-Standards */
+  --kern-primary: #004b87;     /* Behördenblau */
+  --kern-primary-light: #0066b3;
+  --kern-primary-dark: #003366;
+  
+  --kern-secondary: #dc143c;   /* Deutscher Rot-Akzent */
+  --kern-secondary-light: #ff6b6b;
+  --kern-secondary-dark: #a01028;
+  
+  --kern-neutral-50: #f8fafc;
+  --kern-neutral-100: #f1f5f9;
+  --kern-neutral-200: #e2e8f0;
+  --kern-neutral-300: #cbd5e1;
+  --kern-neutral-400: #94a3b8;
+  --kern-neutral-500: #64748b;
+  --kern-neutral-600: #475569;
+  --kern-neutral-700: #334155;
+  --kern-neutral-800: #1e293b;
+  --kern-neutral-900: #0f172a;
+  
+  --kern-success: #16a34a;
+  --kern-warning: #facc15;
+  --kern-error: #dc2626;
+  --kern-info: #0ea5e9;
+  
+  /* KERN UX Typography */
+  --kern-font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --kern-font-size-xs: 0.75rem;    /* 12px */
+  --kern-font-size-sm: 0.875rem;   /* 14px */
+  --kern-font-size-base: 1rem;     /* 16px */
+  --kern-font-size-lg: 1.125rem;   /* 18px */
+  --kern-font-size-xl: 1.25rem;    /* 20px */
+  --kern-font-size-2xl: 1.5rem;    /* 24px */
+  --kern-font-size-3xl: 1.875rem;  /* 30px */
+  --kern-font-size-4xl: 2.25rem;   /* 36px */
+  
+  /* KERN UX Spacing */
+  --kern-space-1: 0.25rem;   /* 4px */
+  --kern-space-2: 0.5rem;    /* 8px */
+  --kern-space-3: 0.75rem;   /* 12px */
+  --kern-space-4: 1rem;      /* 16px */
+  --kern-space-5: 1.25rem;   /* 20px */
+  --kern-space-6: 1.5rem;    /* 24px */
+  --kern-space-8: 2rem;      /* 32px */
+  --kern-space-10: 2.5rem;   /* 40px */
+  --kern-space-12: 3rem;     /* 48px */
+  
+  /* KERN UX Borders */
+  --kern-border-radius: 0.375rem;  /* 6px - Moderate Rundung */
+  --kern-border-width: 1px;
+  --kern-border-color: var(--kern-neutral-300);
+  
+  /* KERN UX Shadows */
+  --kern-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --kern-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --kern-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --kern-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Basis-Styles für optimale Performance */
+html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--kern-font-family) !important;
+  font-size: var(--kern-font-size-base);
+  line-height: 1.6;
+  color: var(--kern-neutral-900) !important;
+  background-color: var(--kern-neutral-50) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -22,32 +89,52 @@ body {
   width: 100vw;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Custom scrollbar */
+/* KERN UX Scrollbar Design */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f9fafb;
+  background: var(--kern-neutral-100);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 4px;
+  background: var(--kern-neutral-400);
+  border-radius: var(--kern-border-radius);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--kern-neutral-500);
 }
 
-/* Animationen */
-@keyframes fadeIn {
+/* KERN UX Focus States */
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--kern-primary);
+  outline-offset: 2px;
+  border-radius: var(--kern-border-radius);
+}
+
+/* KERN UX Button States */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--kern-neutral-200) !important;
+  color: var(--kern-neutral-400) !important;
+}
+
+/* KERN UX Animations */
+@keyframes kern-fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -55,27 +142,503 @@ body {
   }
 }
 
-.fade-in {
-  animation: fadeIn 0.3s ease-out;
+.kern-fade-in {
+  animation: kern-fadeIn 0.3s ease-out;
 }
 
-/* Focus styles */
-button:focus,
-input:focus,
-textarea:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* Disabled states */
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Utility classes */
-.text-ellipsis {
+/* KERN UX Utility Classes */
+.kern-text-ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.kern-card {
+  background-color: white;
+  border: var(--kern-border-width) solid var(--kern-border-color);
+  border-radius: var(--kern-border-radius);
+  box-shadow: var(--kern-shadow-sm);
+  padding: var(--kern-space-6);
+}
+
+/* KERN UX Button States */
+.kern-button-primary {
+  background-color: var(--kern-primary);
+  color: white;
+  border: none;
+  padding: var(--kern-space-3) var(--kern-space-5);
+  border-radius: var(--kern-border-radius);
+  font-family: var(--kern-font-family);
+  font-size: var(--kern-font-size-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  min-width: 44px;
+  margin-bottom: var(--kern-space-2);
+}
+
+.kern-button-primary:hover {
+  background-color: var(--kern-primary-dark);
+  box-shadow: var(--kern-shadow-md);
+  transform: translateY(-1px);
+}
+
+.kern-button-primary:active {
+  background-color: var(--kern-primary-dark);
+  transform: translateY(0);
+  box-shadow: var(--kern-shadow-sm);
+}
+
+.kern-button-primary:focus {
+  outline: 3px solid var(--kern-info);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--kern-primary);
+}
+
+.kern-button-secondary {
+  background-color: transparent;
+  color: var(--kern-primary);
+  border: var(--kern-border-width) solid var(--kern-primary);
+  padding: var(--kern-space-3) var(--kern-space-5);
+  border-radius: var(--kern-border-radius);
+  font-family: var(--kern-font-family);
+  font-size: var(--kern-font-size-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  min-width: 44px;
+  margin-bottom: var(--kern-space-2);
+}
+
+.kern-button-secondary:hover {
+  background-color: var(--kern-primary);
+  color: white;
+  box-shadow: var(--kern-shadow-md);
+  transform: translateY(-1px);
+}
+
+.kern-button-secondary:active {
+  background-color: var(--kern-primary-dark);
+  color: white;
+  transform: translateY(0);
+  box-shadow: var(--kern-shadow-sm);
+}
+
+.kern-button-secondary:focus {
+  outline: 3px solid var(--kern-info);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--kern-primary);
+}
+
+/* KERN UX Chat-Komponenten */
+.kern-message-content {
+  font-family: var(--kern-font-family);
+  font-size: var(--kern-font-size-base);
+  line-height: 1.6;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.kern-message-content strong {
+  font-weight: 600;
+  color: inherit;
+}
+
+.kern-message-content em {
+  font-style: italic;
+  color: inherit;
+}
+
+.kern-code-inline {
+  background-color: var(--kern-neutral-100);
+  color: var(--kern-neutral-800);
+  padding: var(--kern-space-1) var(--kern-space-2);
+  border-radius: var(--kern-border-radius);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: calc(var(--kern-font-size-base) * 0.9);
+  border: 1px solid var(--kern-neutral-200);
+}
+
+/* KERN UX Input-Komponenten */
+.kern-input {
+  font-family: var(--kern-font-family);
+  font-size: var(--kern-font-size-base);
+  padding: var(--kern-space-3) var(--kern-space-4);
+  border: var(--kern-border-width) solid var(--kern-border-color);
+  border-radius: var(--kern-border-radius);
+  background-color: white;
+  color: var(--kern-neutral-900);
+  transition: all 0.2s ease;
+}
+
+.kern-input:focus {
+  border-color: var(--kern-primary);
+  box-shadow: 0 0 0 3px rgba(0, 75, 135, 0.1);
+  outline: none;
+}
+
+.kern-input:disabled {
+  background-color: var(--kern-neutral-100);
+  color: var(--kern-neutral-400);
+  cursor: not-allowed;
+}
+
+/* KERN UX Navigation-Komponenten */
+.kern-nav-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--kern-space-3) var(--kern-space-4);
+  border: none;
+  background: transparent;
+  color: var(--kern-neutral-700);
+  font-family: var(--kern-font-family);
+  font-size: var(--kern-font-size-base);
+  font-weight: 500;
+  text-align: left;
+  border-radius: var(--kern-border-radius);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  gap: var(--kern-space-3);
+}
+
+.kern-nav-item:hover {
+  background-color: var(--kern-neutral-100);
+  color: var(--kern-primary);
+}
+
+.kern-nav-item--active {
+  background-color: var(--kern-primary);
+  color: white;
+  box-shadow: var(--kern-shadow-sm);
+}
+
+.kern-nav-item--active:hover {
+  background-color: var(--kern-primary-dark);
+  color: white;
+}
+
+.kern-nav-item__icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.kern-nav-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.kern-nav-item__title {
+  font-weight: 600;
+  margin: 0;
+  font-size: var(--kern-font-size-base);
+}
+
+.kern-nav-item__description {
+  font-size: var(--kern-font-size-sm);
+  opacity: 0.8;
+  margin: 0;
+  margin-top: 2px;
+}
+
+.kern-nav-item__status {
+  flex-shrink: 0;
+}
+
+/* BITV 2.0 Konforme Model Manager Layout Klassen */
+.kern-model-card-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--kern-space-6); /* 24px Mindestabstand BITV 2.0 */
+}
+
+.kern-model-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--kern-space-4); /* 16px zwischen Blöcken */
+}
+
+.kern-model-header {
+  margin-bottom: var(--kern-space-3); /* 12px nach Titel */
+}
+
+.kern-model-title {
+  font-size: var(--kern-font-size-lg);
+  font-weight: 600;
+  color: var(--kern-neutral-900);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.kern-model-status {
+  display: flex;
+  gap: var(--kern-space-3); /* 12px zwischen Badges */
+  align-items: center;
+  margin-bottom: var(--kern-space-4);
+}
+
+.kern-performance-badge,
+.kern-type-badge {
+  padding: var(--kern-space-1) var(--kern-space-3); /* 4px 12px */
+  font-size: var(--kern-font-size-xs);
+  font-weight: 500;
+  border-radius: 9999px;
+  border: 1px solid;
+}
+
+.kern-performance-badge {
+  /* Dynamische Farben werden durch getPerformanceBadgeColor gesetzt */
+}
+
+.kern-type-badge {
+  background-color: var(--kern-neutral-100);
+  color: var(--kern-neutral-700);
+  border-color: var(--kern-neutral-200);
+}
+
+.kern-model-description {
+  margin-bottom: var(--kern-space-4);
+}
+
+.kern-model-description p {
+  color: var(--kern-neutral-600);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.kern-model-specs {
+  display: flex;
+  gap: var(--kern-space-5); /* 20px zwischen Specs */
+  flex-wrap: wrap;
+  margin-bottom: var(--kern-space-4);
+}
+
+.kern-spec-item {
+  display: flex;
+  align-items: center;
+  gap: var(--kern-space-2); /* 8px zwischen Icon und Text */
+  color: var(--kern-neutral-500);
+  font-size: var(--kern-font-size-sm);
+}
+
+.kern-spec-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.kern-model-usecases {
+  display: flex;
+  gap: var(--kern-space-2); /* 8px zwischen Tags */
+  flex-wrap: wrap;
+  margin-bottom: var(--kern-space-4);
+}
+
+.kern-usecase-tag {
+  padding: var(--kern-space-1) var(--kern-space-2);
+  background-color: var(--kern-neutral-100);
+  color: var(--kern-neutral-700);
+  font-size: var(--kern-font-size-xs);
+  border-radius: var(--kern-border-radius);
+  border: 1px solid var(--kern-neutral-200);
+}
+
+.kern-model-id {
+  margin-top: var(--kern-space-2);
+}
+
+.kern-model-id p {
+  font-family: 'Courier New', monospace;
+  font-size: var(--kern-font-size-xs);
+  color: var(--kern-neutral-500);
+  margin: 0;
+}
+
+.kern-model-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--kern-space-4); /* 16px zwischen Status und Button */
+  min-width: 160px;
+}
+
+.kern-action-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--kern-space-3); /* 12px zwischen Status und Button */
+}
+
+.kern-status-installed,
+.kern-status-notinstalled {
+  padding: var(--kern-space-2) var(--kern-space-4);
+  font-size: var(--kern-font-size-sm);
+  font-weight: 500;
+  border-radius: 9999px;
+  border: 1px solid;
+}
+
+.kern-status-installed {
+  background-color: #dcfce7; /* grün */
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.kern-status-notinstalled {
+  background-color: var(--kern-neutral-100);
+  color: var(--kern-neutral-600);
+  border-color: var(--kern-neutral-200);
+}
+
+.kern-button-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Responsive Design für mobile Geräte */
+@media (max-width: 768px) {
+  .kern-model-card-layout {
+    flex-direction: column;
+    gap: var(--kern-space-4);
+  }
+  
+  .kern-model-actions {
+    align-items: flex-start;
+    width: 100%;
+  }
+  
+  .kern-action-group {
+    align-items: flex-start;
+    width: 100%;
+  }
+  
+  .kern-model-specs {
+    gap: var(--kern-space-3);
+  }
+}
+.kern-button-group {
+  display: flex;
+  gap: var(--kern-space-4); /* Mindestens 16px zwischen Buttons für BITV 2.0 */
+  flex-wrap: wrap;
+  align-items: stretch;
+  margin-bottom: var(--kern-space-4);
+}
+
+.kern-button-group .kern-button-primary,
+.kern-button-group .kern-button-secondary {
+  margin: 0; /* Überschreibt Standard-Margins */
+  flex-shrink: 0;
+}
+
+/* Responsive Button-Layout */
+@media (max-width: 768px) {
+  .kern-button-group {
+    flex-direction: column;
+    gap: var(--kern-space-3);
+  }
+  
+  .kern-button-group .kern-button-primary,
+  .kern-button-group .kern-button-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .kern-button-group {
+    gap: var(--kern-space-2);
+  }
+}
+
+/* BITV 2.0 Mindestabstände für Touch-Targets */
+.kern-button-primary,
+.kern-button-secondary {
+  min-height: 44px; /* BITV 2.0 Standard für Touch-Targets */
+  min-width: 44px;
+  margin-bottom: var(--kern-space-2); /* Vertikaler Abstand zwischen Button-Reihen */
+}
+
+/* Bessere Focus-Indikatoren für BITV 2.0 */
+.kern-button-primary:focus,
+.kern-button-secondary:focus {
+  outline: 3px solid var(--kern-info);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--kern-primary);
+}
+
+/* Container-Spacing für bessere Übersichtlichkeit */
+.kern-content-section {
+  margin-bottom: var(--kern-space-6);
+  padding: var(--kern-space-4);
+}
+
+.kern-content-section + .kern-content-section {
+  margin-top: var(--kern-space-6);
+}
+
+/* Responsive Layout-Verbesserungen */
+@media (max-width: 1024px) {
+  .kern-content-section {
+    padding: var(--kern-space-3);
+    margin-bottom: var(--kern-space-4);
+  }
+}
+
+@media (max-width: 768px) {
+  .kern-content-section {
+    padding: var(--kern-space-2);
+    margin-bottom: var(--kern-space-3);
+  }
+  
+  /* Sidebar responsive */
+  .w-72 {
+    width: 100%;
+    max-width: 280px;
+  }
+  
+  /* Flex-Layout für mobile */
+  .flex {
+    flex-direction: column;
+  }
+  
+  .flex.md\:flex-row {
+    flex-direction: row;
+  }
+}
+
+@media (max-width: 480px) {
+  .kern-content-section {
+    padding: var(--kern-space-1);
+    margin-bottom: var(--kern-space-2);
+  }
+  
+  /* Mobile Typography */
+  h1, .text-3xl {
+    font-size: var(--kern-font-size-2xl) !important;
+  }
+  
+  h2, .text-2xl {
+    font-size: var(--kern-font-size-xl) !important;
+  }
+  
+  /* Mobile Padding für Container */
+  .p-8 {
+    padding: var(--kern-space-4) !important;
+  }
+  
+  .p-6 {
+    padding: var(--kern-space-3) !important;
+  }
+  
+  .p-4 {
+    padding: var(--kern-space-2) !important;
+  }
 }

@@ -2,6 +2,7 @@
 use super::*;
 use std::fs;
 use std::path::Path;
+use chrono::{DateTime, Utc};
 
 #[tauri::command]
 pub async fn scan_documents_folder(

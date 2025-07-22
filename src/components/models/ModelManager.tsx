@@ -110,68 +110,203 @@ export const ModelManager: React.FC<ModelManagerProps> = ({
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-8 grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
           {availableModels.map((model) => (
             <div
               key={model.id}
-              className={`bg-white rounded-lg border-2 transition-all shadow-sm ${
+              className={`kern-card transition-all ${
                 currentModel === model.id
-                  ? "border-green-500 shadow-green-100"
-                  : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                  ? "border-2"
+                  : "border hover:shadow-lg"
               }`}
+              style={{
+                borderColor: currentModel === model.id ? 'var(--kern-success)' : 'var(--kern-border-color)',
+                minHeight: '320px'
+              }}
             >
               <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-6">
                   <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <h3 className="text-xl font-semibold text-gray-900">{model.name}</h3>
-                      {currentModel === model.id && (
-                        <span className="ml-3 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                          Aktiv
-                        </span>
-                      )}
-                      {model.isDownloaded && (
-                        <CheckCircle className="w-5 h-5 text-green-600 ml-2" />
-                      )}
+                    <div className="mb-6">
+                      <h3 className="text-xl font-semibold mb-3" 
+                          style={{ 
+                            color: 'var(--kern-neutral-900)', 
+                            fontSize: 'var(--kern-font-size-xl)',
+                            lineHeight: '1.4',
+                            marginBottom: 'var(--kern-space-4)'
+                          }}>
+                        {model.name}
+                      </h3>
+                      
+                      <div className="flex items-center gap-4 mb-4">
+                        {currentModel === model.id && (
+                          <span className="px-3 py-2 rounded-full text-sm font-medium"
+                                style={{ 
+                                  backgroundColor: 'var(--kern-success)',
+                                  color: 'white',
+                                  display: 'inline-block'
+                                }}>
+                            Aktiv
+                          </span>
+                        )}
+                        {model.isDownloaded && (
+                          <div className="flex items-center gap-2" 
+                               style={{ 
+                                 color: 'var(--kern-success)',
+                                 fontSize: 'var(--kern-font-size-sm)',
+                                 fontWeight: '500'
+                               }}>
+                            <CheckCircle className="w-5 h-5" />
+                            <span>Heruntergeladen</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-gray-600 mb-3">{model.description}</p>
                     
-                    <div className="grid grid-cols-1 gap-4 text-sm">
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-700">Größe:</span>
-                        <span className="text-gray-600">{model.size}</span>
+                    <div className="mb-6" 
+                         style={{ 
+                           padding: 'var(--kern-space-4)',
+                           backgroundColor: 'var(--kern-neutral-50)',
+                           borderRadius: 'var(--kern-border-radius)',
+                           border: '1px solid var(--kern-neutral-200)'
+                         }}>
+                      <h4 className="font-medium mb-2" 
+                          style={{ 
+                            color: 'var(--kern-neutral-800)',
+                            fontSize: 'var(--kern-font-size-base)',
+                            marginBottom: 'var(--kern-space-2)'
+                          }}>
+                        Beschreibung:
+                      </h4>
+                      <p style={{ 
+                         color: 'var(--kern-neutral-700)',
+                         lineHeight: '1.6',
+                         fontSize: 'var(--kern-font-size-base)'
+                       }}>
+                        {model.description}
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4 text-sm" role="list" aria-label="Modell-Informationen">
+                      <div className="flex justify-between items-center p-3 rounded-lg" 
+                           role="listitem"
+                           style={{ 
+                             backgroundColor: 'var(--kern-neutral-50)',
+                             border: '1px solid var(--kern-neutral-200)',
+                             marginBottom: 'var(--kern-space-4)'
+                           }}>
+                        <span className="font-medium" 
+                              style={{ color: 'var(--kern-neutral-700)' }}
+                              aria-label="Dateigröße">
+                          Größe:
+                        </span>
+                        <span className="font-semibold" 
+                              style={{ color: 'var(--kern-neutral-900)' }}
+                              aria-describedby="size-{model.id}">
+                          {model.size}
+                        </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-700">Performance:</span>
-                        <span className="text-gray-600">{model.performance}</span>
+
+                      <div className="flex justify-between items-center p-3 rounded-lg" 
+                           role="listitem"
+                           style={{ 
+                             backgroundColor: 'var(--kern-neutral-50)',
+                             border: '1px solid var(--kern-neutral-200)',
+                             marginBottom: 'var(--kern-space-4)'
+                           }}>
+                        <span className="font-medium" 
+                              style={{ color: 'var(--kern-neutral-700)' }}
+                              aria-label="Modell-Performance">
+                          Performance:
+                        </span>
+                        <span className="font-semibold" 
+                              style={{ color: 'var(--kern-neutral-900)' }}
+                              aria-describedby="performance-{model.id}">
+                          {model.performance}
+                        </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-700">HuggingFace:</span>
-                        <span className="text-gray-600 text-xs font-mono">{model.huggingFaceId}</span>
+
+                      <div className="p-3 rounded-lg" 
+                           role="listitem"
+                           style={{ 
+                             backgroundColor: 'var(--kern-neutral-50)',
+                             border: '1px solid var(--kern-neutral-200)',
+                             marginBottom: 'var(--kern-space-4)'
+                           }}>
+                        <div className="mb-3">
+                          <span className="font-medium block" 
+                                style={{ 
+                                  color: 'var(--kern-neutral-700)',
+                                  marginBottom: 'var(--kern-space-2)'
+                                }}
+                                aria-label="HuggingFace Repository">
+                            HuggingFace Repository:
+                          </span>
+                        </div>
+                        <code className="text-xs font-mono block p-2 rounded" 
+                              style={{ 
+                                color: 'var(--kern-neutral-600)',
+                                backgroundColor: 'white',
+                                border: '1px solid var(--kern-neutral-300)',
+                                wordBreak: 'break-all',
+                                lineHeight: '1.4'
+                              }}
+                              aria-label="Repository-URL"
+                              tabIndex={0}>
+                          {model.huggingFaceId}
+                        </code>
                       </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Einsatzbereich:</span>
-                        <div className="text-gray-600 mt-1">{model.useCase}</div>
+
+                      <div className="p-4 rounded-lg" 
+                           role="listitem"
+                           style={{ 
+                             backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                             border: '1px solid rgba(14, 165, 233, 0.3)',
+                             marginTop: 'var(--kern-space-6)'
+                           }}>
+                        <h5 className="font-medium block mb-3" 
+                            style={{ 
+                              color: 'var(--kern-neutral-800)',
+                              fontSize: 'var(--kern-font-size-base)',
+                              marginBottom: 'var(--kern-space-3)'
+                            }}
+                            aria-label="Einsatzbereich des Modells">
+                          Einsatzbereich:
+                        </h5>
+                        <p style={{ 
+                          color: 'var(--kern-neutral-700)',
+                          lineHeight: '1.6',
+                          fontSize: 'var(--kern-font-size-base)'
+                        }}
+                        aria-describedby="usecase-{model.id}">
+                          {model.useCase}
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between pt-4" 
+                     style={{ 
+                       borderTop: `1px solid var(--kern-border-color)`,
+                       paddingTop: 'var(--kern-space-4)',
+                       gap: 'var(--kern-space-4)'
+                     }}>
                   {model.isDownloaded ? (
-                    <div className="flex space-x-3">
+                    <div className="flex" style={{ gap: 'var(--kern-space-4)' }}>
                       <button
                         onClick={() => handleModelSelect(model.id)}
-                        className={`px-6 py-2 rounded-md font-medium transition-colors ${
-                          currentModel === model.id
-                            ? "bg-green-600 hover:bg-green-700 text-white"
-                            : "bg-blue-600 hover:bg-blue-700 text-white"
-                        }`}
+                        className={currentModel === model.id ? "kern-button-primary" : "kern-button-primary"}
+                        style={{ 
+                          minWidth: '120px',
+                          backgroundColor: currentModel === model.id ? 'var(--kern-success)' : undefined
+                        }}
                       >
                         {currentModel === model.id ? "Aktiv" : "Auswählen"}
                       </button>
-                      <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-medium transition-colors flex items-center">
-                        <Settings className="w-4 h-4 mr-2" />
+                      <button className="kern-button-secondary flex items-center" 
+                              style={{ minWidth: '140px', gap: 'var(--kern-space-2)' }}>
+                        <Settings className="w-4 h-4" />
                         Konfigurieren
                       </button>
                     </div>
@@ -179,22 +314,32 @@ export const ModelManager: React.FC<ModelManagerProps> = ({
                     <button
                       onClick={() => handleDownload(model.id)}
                       disabled={downloadingModel === model.id}
-                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium transition-colors flex items-center"
+                      className="kern-button-primary flex items-center"
+                      style={{ 
+                        minWidth: '160px',
+                        gap: 'var(--kern-space-2)',
+                        opacity: downloadingModel === model.id ? 0.7 : 1
+                      }}
                     >
                       {downloadingModel === model.id ? (
                         <>
-                          <div className="animate-spin w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                           Lade herunter...
                         </>
                       ) : (
                         <>
-                          <Download className="w-4 h-4 mr-2" />
+                          <Download className="w-4 h-4" />
                           Herunterladen
                         </>
                       )}
                     </button>
                   )}
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm" 
+                       style={{ 
+                         color: 'var(--kern-neutral-500)',
+                         fontSize: 'var(--kern-font-size-sm)',
+                         marginLeft: 'var(--kern-space-4)'
+                       }}>
                     {model.isDownloaded ? "Verfügbar" : "Nicht heruntergeladen"}
                   </div>
                 </div>

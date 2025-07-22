@@ -58,6 +58,8 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const selectDocumentsFolder = async () => {
     try {
       setError(null);
+      
+      // Verwende Tauri Dialog API
       const selected = await open({
         directory: true,
         multiple: false,
@@ -89,20 +91,24 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const loadDocuments = async (folderPath: string) => {
     setIsLoading(true);
     try {
-      const result = await invoke<DocumentItem[]>('load_documents', {
-        folderPath: folderPath
+      console.log('📁 Loading documents from:', folderPath);
+      const result = await invoke<DocumentItem[]>('scan_documents_folder', {
+        folder_path: folderPath
       });
       
+      console.log('✅ Loaded documents:', result);
       setDocuments(result || []);
+      setError(null);
     } catch (error) {
       console.error('Fehler beim Laden der Dokumente:', error);
       setError('Fehler beim Laden der Dokumente. Überprüfen Sie den Pfad.');
-      // Demo-Daten für Entwicklung
+      
+      // Fallback zu Demo-Daten bei Entwicklungsfehlern
       setDocuments([
         {
           id: 'doc_1',
           name: 'Projektbericht_2024.pdf',
-          path: '/documents/Projektbericht_2024.pdf',
+          path: `${folderPath}/Projektbericht_2024.pdf`,
           type: 'PDF',
           size: 2547392,
           lastModified: '2024-12-15T10:30:00Z',
@@ -111,7 +117,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         {
           id: 'doc_2',
           name: 'Meeting_Notes.txt',
-          path: '/documents/Meeting_Notes.txt',
+          path: `${folderPath}/Meeting_Notes.txt`,
           type: 'TXT',
           size: 15476,
           lastModified: '2024-12-20T14:45:00Z',
@@ -202,49 +208,61 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </h2>
         
         {/* Ordnerauswahl */}
-        <div className="space-y-3">
-          <div className="flex gap-3">
+        <div className="kern-content-section">
+          <div className="kern-button-group">
             <button
               onClick={selectDocumentsFolder}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="kern-button-primary flex items-center gap-2"
             >
               <FolderOpen className="w-4 h-4" />
-              Ordner auswählen
+              <span>Ordner auswählen</span>
             </button>
             
             <button
               onClick={() => setShowManualInput(!showManualInput)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+              className="kern-button-secondary flex items-center gap-2"
             >
               <FileText className="w-4 h-4" />
-              Manuell eingeben
+              <span>Manuell eingeben</span>
             </button>
             
             {documentsFolder && (
               <button
                 onClick={() => loadDocuments(documentsFolder)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-lg hover:bg-green-200 transition-colors"
+                className="kern-button-secondary flex items-center gap-2"
                 disabled={isLoading}
+                style={{ 
+                  backgroundColor: isLoading ? 'var(--kern-neutral-200)' : undefined,
+                  opacity: isLoading ? 0.7 : 1
+                }}
               >
                 <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Neu laden
+                <span>Neu laden</span>
               </button>
             )}
           </div>
 
           {/* Manuelle Pfadeingabe */}
           {showManualInput && (
-            <div className="flex gap-2">
+            <div className="kern-button-group" style={{ marginTop: 'var(--kern-space-4)' }}>
               <input
                 type="text"
                 value={manualPath}
                 onChange={(e) => setManualPath(e.target.value)}
                 placeholder="z.B. C:\Users\frank\Documents\Dokumente"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="kern-input"
+                style={{ 
+                  flex: '1 1 300px',
+                  minWidth: '250px'
+                }}
               />
               <button
                 onClick={applyManualPath}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="kern-button-primary"
+                style={{ 
+                  minWidth: '120px',
+                  flexShrink: 0
+                }}
               >
                 Übernehmen
               </button>
@@ -283,11 +301,15 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Dokumente durchsuchen..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="kern-input w-full pl-10"
                 />
               </div>
               
-              <div className="mt-2 text-sm text-gray-600">
+              <div className="mt-3 text-sm" 
+                   style={{ 
+                     color: 'var(--kern-neutral-600)',
+                     fontSize: 'var(--kern-font-size-sm)'
+                   }}>
                 {filteredDocuments.length} von {documents.length} Dokumenten
               </div>
             </div>
@@ -296,28 +318,42 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <div className="flex-1 overflow-y-auto">
               {isLoading ? (
                 <div className="flex items-center justify-center h-32">
-                  <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
-                  <span className="ml-2 text-gray-600">Lade Dokumente...</span>
+                  <RefreshCw className="w-6 h-6 animate-spin" style={{ color: 'var(--kern-primary)' }} />
+                  <span className="ml-3" style={{ color: 'var(--kern-neutral-600)' }}>Lade Dokumente...</span>
                 </div>
               ) : filteredDocuments.length > 0 ? (
-                <div className="space-y-1 p-2">
+                <div className="space-y-2 p-4">
                   {filteredDocuments.map((doc) => (
                     <div
                       key={doc.id}
                       onClick={() => setSelectedDocument(doc)}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={`p-4 rounded-lg cursor-pointer transition-all kern-fade-in ${
                         selectedDocument?.id === doc.id
-                          ? 'bg-blue-50 border border-blue-200'
-                          : 'hover:bg-gray-50 border border-transparent'
+                          ? 'border-2'
+                          : 'border hover:shadow-md'
                       }`}
+                      style={{
+                        borderColor: selectedDocument?.id === doc.id ? 'var(--kern-primary)' : 'var(--kern-border-color)',
+                        backgroundColor: selectedDocument?.id === doc.id ? 'var(--kern-neutral-50)' : 'white',
+                        marginBottom: 'var(--kern-space-3)'
+                      }}
                     >
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-3 mb-3">
                         {getFileIcon(doc.type)}
-                        <div className="font-medium text-gray-900 text-sm truncate flex-1">
+                        <div className="font-medium text-sm truncate flex-1"
+                             style={{ 
+                               color: 'var(--kern-neutral-900)',
+                               fontSize: 'var(--kern-font-size-sm)',
+                               fontWeight: '600'
+                             }}>
                           {doc.name}
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500 space-y-1">
+                      <div className="text-xs space-y-2"
+                           style={{ 
+                             color: 'var(--kern-neutral-500)',
+                             fontSize: 'var(--kern-font-size-xs)'
+                           }}>
                         <div>{doc.type} • {formatFileSize(doc.size)}</div>
                         <div>{new Date(doc.lastModified).toLocaleDateString('de-DE')}</div>
                       </div>

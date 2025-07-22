@@ -121,11 +121,11 @@ Wie kann ich Ihnen heute helfen?`,
   };
 
   const formatMessage = (content: string) => {
-    // Einfache Markdown-ähnliche Formatierung
+    // KERN UX konforme Formatierung ohne hanging text
     return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded">$1</code>');
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-inherit">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-inherit">$1</em>')
+      .replace(/`(.*?)`/g, '<code class="kern-code-inline">$1</code>');
   };
 
   return (
@@ -179,14 +179,14 @@ Wie kann ich Ihnen heute helfen?`,
               )}
               
               <div
-                className={`max-w-3xl px-4 py-3 rounded-lg ${
+                className={`max-w-3xl px-4 py-3 rounded-lg kern-fade-in ${
                   message.role === 'user'
                     ? 'bg-blue-600 text-white ml-12'
                     : 'bg-gray-100 text-gray-900 mr-12'
                 }`}
               >
                 <div
-                  className="prose prose-sm max-w-none"
+                  className="kern-message-content"
                   dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                 />
                 <div className={`text-xs mt-2 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
@@ -245,7 +245,7 @@ Wie kann ich Ihnen heute helfen?`,
                   : "Modell auswählen, um zu chatten..."
               }
               disabled={!currentModel || isGenerating}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-400"
+              className="w-full kern-input resize-none"
               rows={1}
               style={{ minHeight: '48px', maxHeight: '120px' }}
             />
@@ -254,7 +254,7 @@ Wie kann ich Ihnen heute helfen?`,
           <button
             onClick={handleSendMessage}
             disabled={!inputText.trim() || !currentModel || isGenerating}
-            className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="kern-button-primary flex items-center gap-2"
           >
             <Send className="w-5 h-5" />
             <span className="hidden sm:inline">Senden</span>
