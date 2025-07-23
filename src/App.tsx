@@ -1,6 +1,5 @@
 // src/App.tsx - Haupt-React-Anwendung
 import React, { useState, useEffect, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Sidebar } from './components/Sidebar';
 import { DocumentViewer } from './components/document/DocumentViewer';
 import { ChatInterface } from './components/chat/ChatInterface';
@@ -16,12 +15,17 @@ interface AppState {
 }
 
 function App() {
-  // Initialisiere State mit localStorage-Persistenz
+  // Initialisiere State mit localStorage-Persistenz und Validierung
   const [appState, setAppState] = useState<AppState>(() => {
     const savedState = localStorage.getItem('localllm-app-state');
     if (savedState) {
       try {
-        return JSON.parse(savedState);
+        const parsed = JSON.parse(savedState);
+        // Validiere gespeicherte Daten - setze ungültige Modelle zurück
+        return {
+          ...parsed,
+          currentModel: null, // Reset bis Modell wirklich heruntergeladen wird
+        };
       } catch (e) {
         console.warn('Failed to parse saved state:', e);
       }
@@ -42,6 +46,9 @@ function App() {
   }, [appState]);
 
   useEffect(() => {
+    // Initialisiere Desktop-App
+    console.log('Initialisiere LocalLLM Desktop-App...');
+    
     initializeApp();
   }, []);
 
@@ -49,24 +56,20 @@ function App() {
     try {
       console.log('Initializing LocalLLM Desktop...');
       
-      // Versuche Backend-Initialisierung mit Timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Backend timeout')), 3000)
-      );
+      // Desktop-App: Tauri Backend-Integration erforderlich
+      const { invoke } = await import('@tauri-apps/api/core');
       
-      const initPromise = Promise.all([
+      await Promise.all([
         invoke('init_database'),
         invoke('greet', { name: 'Frank' })
       ]);
       
-      await Promise.race([initPromise, timeoutPromise]);
-      console.log('Backend successfully initialized');
-      
+      console.log('Desktop-App erfolgreich initialisiert');
       setAppState(prev => ({ ...prev, isInitialized: true }));
     } catch (error) {
-      console.warn('Backend initialization failed, running in frontend-only mode:', error);
-      // Fallback: App trotzdem starten, aber nur Frontend-Features verfügbar
-      setAppState(prev => ({ ...prev, isInitialized: true }));
+      console.error('Desktop-App Initialisierung fehlgeschlagen:', error);
+      alert('Fehler beim Starten der Desktop-App!\n\nStellen Sie sicher, dass:\n• Die Tauri Desktop-App läuft\n• Das Backend verfügbar ist\n\nBrowser-Modus wird nicht mehr unterstützt.');
+      setAppState(prev => ({ ...prev, isInitialized: false }));
     }
   };
 

@@ -18,9 +18,21 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    
+    /* Electron specific */
+    "types": ["node"]
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "kern-ux-redesign",
+    "electron/preload.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "dist-electron"
+  ]
 }

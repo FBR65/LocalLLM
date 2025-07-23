@@ -1,6 +1,5 @@
 // src/components/chat/ChatInterface.tsx - Deutsche KI-Chat-Oberfläche
 import React, { useState, useEffect, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Send, FileText, Mail, Bot, User, Trash2 } from 'lucide-react';
 
 interface Message {
@@ -78,7 +77,9 @@ Wie kann ich Ihnen heute helfen?`,
     setIsGenerating(true);
 
     try {
-      // Backend-Call für Textgenerierung
+      // AUSSCHLIESSLICH Desktop-App: Tauri Backend-Integration
+      const { invoke } = await import('@tauri-apps/api/core');
+      
       const response = await invoke<string>('generate_german_text', {
         prompt: inputText.trim(),
         modelName: currentModel
@@ -98,7 +99,7 @@ Wie kann ich Ihnen heute helfen?`,
       const errorMessage: Message = {
         id: `msg_${Date.now() + 1}`,
         role: 'assistant',
-        content: `Entschuldigung, es gab einen Fehler bei der Verarbeitung Ihrer Anfrage: ${error}`,
+        content: `Entschuldigung, es gab einen Fehler bei der Verarbeitung Ihrer Anfrage: ${error}\n\nStellen Sie sicher, dass die Desktop-App läuft und das Backend verfügbar ist.`,
         timestamp: new Date().toISOString()
       };
 
