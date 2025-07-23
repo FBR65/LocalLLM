@@ -4,6 +4,12 @@ import path from 'node:path';
 import Store from 'electron-store';
 import axios from 'axios';
 import fs from 'fs/promises';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+const XLSX = require('xlsx');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -81,7 +87,7 @@ function createMainWindow() {
 
   // In development: Vite Dev Server laden
   if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
-    mainWindow.loadURL('http://localhost:5174'); // Correct port from terminal output
+    mainWindow.loadURL('http://localhost:5173'); // Vite default port
     mainWindow.webContents.openDevTools(); // DevTools aktivieren für Debugging
   } else {
     // In production: Gebaute Dateien laden
@@ -172,6 +178,8 @@ ipcMain.handle('ollama:chat', async (_, message, context) => {
       : `${systemPrompt}\n\nBenutzer: ${message}\n\nAssistent:`;
 
     console.log('Backend: Sende Request an Ollama API mit Modell:', model);
+    
+    // Erweiterte Timeout und Retry-Logik
     const response = await axios.post(`${baseUrl}/api/generate`, {
       model,
       prompt,
@@ -180,6 +188,12 @@ ipcMain.handle('ollama:chat', async (_, message, context) => {
         temperature: 0.7,
         top_p: 0.9,
         repeat_penalty: 1.1
+      }
+    }, {
+      timeout: 120000, // 2 Minuten Timeout
+      headers: {
+        'Connection': 'close', // Verbindung nach Request schließen
+        'Content-Type': 'application/json'
       }
     });
 
@@ -191,6 +205,39 @@ ipcMain.handle('ollama:chat', async (_, message, context) => {
   } catch (error) {
     console.error('Backend: Ollama Chat Error:', error.message);
     console.error('Backend: Error Details:', error.response?.data || 'Keine Details');
+    
+    // Spezielle Behandlung für Socket-Fehler
+    if (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND' || error.message.includes('socket hang up')) {
+      console.log('Backend: Socket-Fehler erkannt, versuche Reconnect');
+      // Kurz warten und nochmal versuchen
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      try {
+        const retryResponse = await axios.post(`${baseUrl}/api/generate`, {
+          model,
+          prompt,
+          stream: false,
+          options: {
+            temperature: 0.7,
+            top_p: 0.9,
+            repeat_penalty: 1.1
+          }
+        }, {
+          timeout: 60000,
+          headers: {
+            'Connection': 'close',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        return {
+          success: true,
+          response: retryResponse.data.response
+        };
+      } catch (retryError) {
+        console.error('Backend: Retry auch fehlgeschlagen:', retryError.message);
+      }
+    }
     
     // Spezielle Behandlung für "model not found" Fehler
     if (error.response?.data?.error?.includes('not found')) {
@@ -215,7 +262,12 @@ ipcMain.handle('ollama:models', async () => {
   try {
     const baseUrl = store.get('ollama.baseUrl');
     console.log('Backend: Rufe Modelle ab von:', baseUrl);
-    const response = await axios.get(`${baseUrl}/api/tags`);
+    const response = await axios.get(`${baseUrl}/api/tags`, {
+      timeout: 10000,
+      headers: {
+        'Connection': 'close'
+      }
+    });
     console.log('Backend: Modelle Response:', response.data);
     return {
       success: true,
@@ -223,6 +275,28 @@ ipcMain.handle('ollama:models', async () => {
     };
   } catch (error) {
     console.error('Backend: Fehler beim Laden der Modelle:', error.message);
+    
+    // Bei Socket-Fehlern einen Retry versuchen
+    if (error.code === 'ECONNRESET' || error.message.includes('socket hang up')) {
+      console.log('Backend: Retry für Modellabfrage...');
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const baseUrl = store.get('ollama.baseUrl');
+        const retryResponse = await axios.get(`${baseUrl}/api/tags`, {
+          timeout: 5000,
+          headers: {
+            'Connection': 'close'
+          }
+        });
+        return {
+          success: true,
+          models: retryResponse.data.models || []
+        };
+      } catch (retryError) {
+        console.error('Backend: Retry für Modelle auch fehlgeschlagen:', retryError.message);
+      }
+    }
+    
     return {
       success: false,
       error: error.message,
@@ -250,6 +324,8 @@ ipcMain.handle('dialog:openFile', async (_, filters) => {
     properties: ['openFile'],
     filters: filters || [
       { name: 'Alle Dateien', extensions: ['*'] },
+      { name: 'Dokumente', extensions: ['pdf', 'docx', 'txt', 'md', 'json'] },
+      { name: 'Office Dateien', extensions: ['docx', 'xlsx', 'pptx'] },
       { name: 'Text Dateien', extensions: ['txt', 'md', 'json'] },
       { name: 'PST Dateien', extensions: ['pst'] }
     ]
@@ -355,15 +431,145 @@ ipcMain.handle('fs:listDirectory', async (_, dirPath) => {
   }
 });
 
+// PDF/Office-Parsing - EINFACH UND FUNKTIONIEREND
+async function parseDocument(filePath) {
+  try {
+    const ext = path.extname(filePath).toLowerCase();
+    console.log('Backend: Parse Dokument:', filePath, 'Typ:', ext);
+    
+    if (ext === '.pdf') {
+      console.log('Backend: Verwende pdf-parse für PDF');
+      
+      const pdfBuffer = await fs.readFile(filePath);
+      console.log('Backend: PDF-Buffer gelesen, Größe:', pdfBuffer.length);
+      
+      const pdfData = await pdfParse(pdfBuffer);
+      
+      console.log('Backend: PDF-Parse Ergebnis:');
+      console.log('  - Seiten:', pdfData.numpages);
+      console.log('  - Text-Länge:', pdfData.text?.length || 0);
+      
+      const extractedText = pdfData.text || '';
+      const cleanText = extractedText.trim();
+      
+      if (cleanText.length === 0) {
+        return {
+          success: false,
+          error: 'PDF enthält keinen extrahierbaren Text'
+        };
+      }
+      
+      console.log('Backend: PDF-Parse erfolgreich, Text-Länge:', cleanText.length);
+      
+      return {
+        success: true,
+        text: cleanText,
+        metadata: {
+          pages: pdfData.numpages,
+          info: pdfData.info,
+          extractionMethod: 'pdf-parse'
+        }
+      };
+    }
+    
+    if (ext === '.docx') {
+      const docxBuffer = await fs.readFile(filePath);
+      const docxResult = await mammoth.extractRawText({ buffer: docxBuffer });
+      console.log('Backend: DOCX geparsed, Text-Länge:', docxResult.value.length);
+      return {
+        success: true,
+        text: docxResult.value.trim(),
+        metadata: {
+          extractionMethod: 'mammoth'
+        }
+      };
+    }
+    
+    if (ext === '.xlsx' || ext === '.xls') {
+      const workbook = XLSX.readFile(filePath);
+      let excelText = '';
+      workbook.SheetNames.forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const sheetText = XLSX.utils.sheet_to_txt(sheet);
+        excelText += `=== ${sheetName} ===\n${sheetText}\n\n`;
+      });
+      console.log('Backend: Excel geparsed, Text-Länge:', excelText.length);
+      return {
+        success: true,
+        text: excelText.trim(),
+        metadata: {
+          extractionMethod: 'xlsx'
+        }
+      };
+    }
+    
+    if (ext === '.txt' || ext === '.md' || ext === '.json') {
+      const textContent = await fs.readFile(filePath, 'utf-8');
+      return {
+        success: true,
+        text: textContent,
+        metadata: {
+          extractionMethod: 'direct-read'
+        }
+      };
+    }
+    
+    return {
+      success: false,
+      error: `Dateityp ${ext} wird nicht unterstützt`
+    };
+    
+  } catch (error) {
+    console.error('Backend: Fehler beim Parsen:', filePath, error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
 // Datei-Inhalt lesen
 ipcMain.handle('file:read', async (_, filePath) => {
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
+    console.log('Backend: Lese Datei:', filePath);
+    
+    // Verwende das neue schnelle Parsing
+    const parseResult = await parseDocument(filePath);
+    
+    if (!parseResult.success) {
+      return {
+        success: false,
+        error: `Dokument-Parsing fehlgeschlagen: ${parseResult.error}`
+      };
+    }
+    
+    if (!parseResult.text || parseResult.text.trim().length === 0) {
+      console.warn('Backend: Dokument enthält keinen extrahierbaren Text');
+      return {
+        success: false,
+        error: 'Dokument enthält keinen lesbaren Text oder konnte nicht verarbeitet werden'
+      };
+    }
+    
+    // Bereinige den Text von redundanten Leerzeichen und Formatierung
+    const cleanedText = parseResult.text
+      .replace(/\s+/g, ' ') // Mehrfache Leerzeichen durch ein einzelnes ersetzen
+      .replace(/\n\s*\n/g, '\n') // Mehrfache Zeilenwechsel reduzieren
+      .trim();
+    
+    console.log('Backend: Dokument-Parsing erfolgreich, bereinigte Text-Länge:', cleanedText.length);
+    
     return {
       success: true,
-      content
+      content: cleanedText,
+      metadata: {
+        ...parseResult.metadata,
+        originalLength: parseResult.text.length,
+        cleanedLength: cleanedText.length
+      }
     };
   } catch (error) {
+    console.error('Backend: Fehler beim Lesen der Datei:', filePath, error.message);
     return {
       success: false,
       error: error.message
@@ -452,24 +658,40 @@ ipcMain.handle('pst:search', async (_, filePath, searchTerm) => {
 
 // Dokumenten-Zusammenfassung mit Ollama
 ipcMain.handle('ollama:summarize', async (_, content, type) => {
-  console.log('Backend: Erstelle Zusammenfassung, Typ:', type);
+  console.log('Backend: Erstelle Zusammenfassung, Typ:', type, 'Content-Länge:', content?.length || 0);
   try {
     const baseUrl = store.get('ollama.baseUrl');
     const currentModel = store.get('ollama.model');
     
+    // Prüfe ob Content vorhanden ist
+    if (!content || content.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Kein Inhalt zum Zusammenfassen vorhanden'
+      };
+    }
+    
+    // Kürze sehr langen Content für bessere Performance
+    const maxLength = 8000; // Maximale Anzahl Zeichen
+    let processedContent = content;
+    if (content.length > maxLength) {
+      processedContent = content.substring(0, maxLength) + '\n\n[Inhalt wurde gekürzt...]';
+      console.log('Backend: Content gekürzt von', content.length, 'auf', processedContent.length, 'Zeichen');
+    }
+    
     let prompt = '';
     switch (type) {
       case 'brief':
-        prompt = `Erstelle eine kurze Zusammenfassung (max. 3 Sätze) des folgenden Texts auf Deutsch:\n\n${content}`;
+        prompt = `Du bist ein deutscher Assistent. Analysiere den folgenden Dokumentinhalt und erstelle eine prägnante Zusammenfassung (maximal 3 Sätze) auf Deutsch. Konzentriere dich auf die wichtigsten Fakten und Aussagen:\n\n${processedContent}\n\nPrägnante Zusammenfassung:`;
         break;
       case 'detailed':
-        prompt = `Erstelle eine detaillierte Zusammenfassung des folgenden Texts auf Deutsch. Berücksichtige alle wichtigen Punkte:\n\n${content}`;
+        prompt = `Du bist ein deutscher Assistent. Analysiere den folgenden Dokumentinhalt und erstelle eine detaillierte Zusammenfassung auf Deutsch. Strukturiere die wichtigsten Punkte und Informationen übersichtlich:\n\n${processedContent}\n\nDetaillierte Zusammenfassung:`;
         break;
       case 'key-points':
-        prompt = `Extrahiere die wichtigsten Punkte aus dem folgenden Text als Aufzählung auf Deutsch:\n\n${content}`;
+        prompt = `Du bist ein deutscher Assistent. Analysiere den folgenden Dokumentinhalt und extrahiere die wichtigsten Punkte. Erstelle eine strukturierte Aufzählung der Kernaussagen auf Deutsch:\n\n${processedContent}\n\nWichtige Punkte:`;
         break;
       default:
-        prompt = `Fasse den folgenden Text zusammen:\n\n${content}`;
+        prompt = `Du bist ein deutscher Assistent. Analysiere den folgenden Dokumentinhalt und fasse ihn verständlich zusammen. Achte auf die wichtigsten Informationen und Fakten:\n\n${processedContent}\n\nZusammenfassung:`;
     }
 
     const requestData = {
@@ -477,17 +699,27 @@ ipcMain.handle('ollama:summarize', async (_, content, type) => {
       prompt: prompt,
       stream: false,
       options: {
-        temperature: 0.3
+        temperature: 0.3,
+        top_p: 0.9,
+        repeat_penalty: 1.1
       }
     };
 
+    console.log('Backend: Sende Zusammenfassungs-Request an Ollama');
     const response = await axios.post(`${baseUrl}/api/generate`, requestData, {
-      timeout: 60000
+      timeout: 90000, // 90 Sekunden Timeout
+      headers: {
+        'Connection': 'close',
+        'Content-Type': 'application/json'
+      }
     });
+
+    const summary = response.data.response?.trim();
+    console.log('Backend: Zusammenfassung erstellt, Länge:', summary?.length || 0);
 
     return {
       success: true,
-      summary: response.data.response?.trim()
+      summary: summary || 'Keine Zusammenfassung generiert'
     };
   } catch (error) {
     console.error('Backend: Fehler bei Zusammenfassung:', error.message);
@@ -533,7 +765,11 @@ ipcMain.handle('ollama:analyze', async (_, content, analysisType) => {
     };
 
     const response = await axios.post(`${baseUrl}/api/generate`, requestData, {
-      timeout: 90000
+      timeout: 90000,
+      headers: {
+        'Connection': 'close',
+        'Content-Type': 'application/json'
+      }
     });
 
     return {
@@ -581,7 +817,11 @@ ipcMain.handle('ollama:generatePodcast', async (_, content, style) => {
     };
 
     const response = await axios.post(`${baseUrl}/api/generate`, requestData, {
-      timeout: 120000
+      timeout: 120000,
+      headers: {
+        'Connection': 'close',
+        'Content-Type': 'application/json'
+      }
     });
 
     return {
@@ -627,6 +867,7 @@ ipcMain.handle('notebook:analyzeAll', async (_, directory) => {
           if (name.includes('analyse')) topics.push('Analysen');
           if (name.includes('protokoll')) topics.push('Protokolle');
           if (name.includes('dokumentation')) topics.push('Dokumentation');
+          if (name.includes('pdf')) topics.push('PDF-Dokumente');
         }
       }
     }
@@ -667,12 +908,34 @@ ipcMain.handle('notebook:searchContent', async (_, query, directory) => {
     for (const item of items) {
       if (item.isFile()) {
         const ext = path.extname(item.name).toLowerCase();
-        const supportedExts = ['.txt', '.md', '.json'];
+        const supportedExts = ['.txt', '.md', '.json', '.pdf', '.docx', '.xlsx', '.xls'];
         
         if (supportedExts.includes(ext)) {
           try {
             const filePath = path.join(directory, item.name);
-            const content = await fs.readFile(filePath, 'utf-8');
+            let content = '';
+            
+            if (ext === '.pdf' || ext === '.docx' || ext === '.xlsx' || ext === '.xls') {
+              // Dokument über das neue Parsing verarbeiten
+              console.log('Backend: Parse Dokument für Suche:', item.name);
+              const parseResult = await parseDocument(filePath);
+              
+              if (parseResult.success && parseResult.text) {
+                // Bereinige den Text
+                content = parseResult.text
+                  .replace(/\s+/g, ' ')
+                  .replace(/\n\s*\n/g, '\n')
+                  .trim();
+                
+                console.log('Backend: Dokument geparsed für Suche, Länge:', content.length);
+              } else {
+                console.warn('Backend: Dokument-Parsing fehlgeschlagen für:', item.name);
+                continue; // Überspringe diese Datei
+              }
+            } else {
+              // Text-Datei lesen
+              content = await fs.readFile(filePath, 'utf-8');
+            }
             
             // Einfache Textsuche
             const lowerContent = content.toLowerCase();
@@ -680,19 +943,20 @@ ipcMain.handle('notebook:searchContent', async (_, query, directory) => {
             
             if (lowerContent.includes(lowerQuery)) {
               const index = lowerContent.indexOf(lowerQuery);
-              const start = Math.max(0, index - 50);
-              const end = Math.min(content.length, index + 100);
+              const start = Math.max(0, index - 100);
+              const end = Math.min(content.length, index + 200);
               const snippet = content.slice(start, end);
               
               // Relevanz basierend auf Häufigkeit
-              const matches = (lowerContent.match(new RegExp(lowerQuery, 'g')) || []).length;
+              const matches = (lowerContent.match(new RegExp(lowerQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
               const relevance = Math.min(1, matches / 10);
               
               results.push({
                 file: item.name,
                 relevance,
-                snippet: snippet,
-                path: filePath
+                snippet: snippet.trim(),
+                path: filePath,
+                matches: matches
               });
             }
           } catch (fileError) {
@@ -705,6 +969,7 @@ ipcMain.handle('notebook:searchContent', async (_, query, directory) => {
     // Sortiere nach Relevanz
     results.sort((a, b) => b.relevance - a.relevance);
     
+    console.log('Backend: Suche abgeschlossen,', results.length, 'Ergebnisse gefunden');
     return {
       success: true,
       results: results.slice(0, 20) // Maximal 20 Ergebnisse
@@ -729,12 +994,33 @@ ipcMain.handle('file:search', async (_, searchTerm, directory) => {
     for (const item of items) {
       if (item.isFile()) {
         const ext = path.extname(item.name).toLowerCase();
-        const supportedExts = ['.txt', '.md', '.json'];
+        const supportedExts = ['.txt', '.md', '.json', '.pdf', '.docx', '.xlsx', '.xls'];
         
         if (supportedExts.includes(ext)) {
           try {
             const filePath = path.join(directory, item.name);
-            const content = await fs.readFile(filePath, 'utf-8');
+            let content = '';
+            
+            if (ext === '.pdf' || ext === '.docx' || ext === '.xlsx' || ext === '.xls') {
+              // Dokument über das neue Parsing verarbeiten
+              console.log('Backend: Parse Dokument für Dateisuche:', item.name);
+              const parseResult = await parseDocument(filePath);
+              
+              if (parseResult.success && parseResult.text) {
+                // Bereinige den Text
+                content = parseResult.text
+                  .replace(/\s+/g, ' ')
+                  .replace(/\n\s*\n/g, '\n')
+                  .trim();
+              } else {
+                console.warn('Backend: Dokument-Parsing fehlgeschlagen für:', item.name);
+                continue; // Überspringe diese Datei
+              }
+            } else {
+              // Text-Datei lesen
+              content = await fs.readFile(filePath, 'utf-8');
+            }
+            
             const lines = content.split('\n');
             
             const matches = [];
@@ -751,16 +1037,18 @@ ipcMain.handle('file:search', async (_, searchTerm, directory) => {
               results.push({
                 path: filePath,
                 name: item.name,
-                matches: matches.slice(0, 5) // Maximal 5 Matches pro Datei
+                matches: matches.slice(0, 10), // Maximal 10 Matches pro Datei
+                totalMatches: matches.length
               });
             }
           } catch (fileError) {
-            console.warn('Datei konnte nicht durchsucht werden:', item.name);
+            console.warn('Datei konnte nicht durchsucht werden:', item.name, fileError.message);
           }
         }
       }
     }
     
+    console.log('Backend: Datei-Suche abgeschlossen,', results.length, 'Dateien mit Treffern');
     return {
       success: true,
       results
