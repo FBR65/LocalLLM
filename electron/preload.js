@@ -49,6 +49,12 @@ const electronAPI = {
   },
   
   // File System Operations
+  files: {
+    selectDirectory: () => ipcRenderer.invoke('dialog:openFolder'),
+    readDirectory: (dirPath) => ipcRenderer.invoke('fs:listDirectory', dirPath)
+  },
+  
+  // File System Operations
   fs: {
     listDirectory: (dirPath) => ipcRenderer.invoke('fs:listDirectory', dirPath)
   },
@@ -69,10 +75,14 @@ const electronAPI = {
     }
   },
   
-  // PST Operations (kept for compatibility)
+  // PST Operations (erweitert)
   pst: {
     analyze: (filePath) => ipcRenderer.invoke('pst:analyze', filePath),
-    search: (filePath, searchTerm) => ipcRenderer.invoke('pst:search', filePath, searchTerm)
+    search: (filePath, query, options) => ipcRenderer.invoke('pst:search', filePath, query, options),
+    openFolder: (filePath) => ipcRenderer.invoke('pst:openFolder', filePath),
+    loadEmails: (filePath, folderPath, limit, offset) => ipcRenderer.invoke('pst:loadEmails', filePath, folderPath, limit, offset),
+    loadEmailDetails: (filePath, emailId) => ipcRenderer.invoke('pst:loadEmailDetails', filePath, emailId),
+    generateStats: (filePath, analysisType) => ipcRenderer.invoke('pst:generateStats', filePath, analysisType)
   },
   
   // Platform Info

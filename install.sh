@@ -131,6 +131,23 @@ echo -e "\n${GREEN}⚙️  Node.js Dependencies werden installiert...${NC}"
 npm install
 echo -e "${GREEN}✅ Dependencies erfolgreich installiert${NC}"
 
+# 5.1. PST-Dependencies installieren
+echo -e "\n${GREEN}📧 PST-Verarbeitungs-Abhängigkeiten werden installiert...${NC}"
+echo -e "${CYAN}   (Für E-Mail-Archive und .pst-Dateien)${NC}"
+
+PST_PACKAGES=("pst-parser" "pst-extractor" "email-addresses" "date-fns" "lodash")
+
+for package in "${PST_PACKAGES[@]}"; do
+    echo -e "${YELLOW}📦 Installiere $package...${NC}"
+    if npm install "$package"; then
+        echo -e "${GREEN}✅ $package erfolgreich installiert${NC}"
+    else
+        echo -e "${YELLOW}⚠️  $package konnte nicht installiert werden - PST-Funktionen möglicherweise eingeschränkt${NC}"
+    fi
+done
+
+echo -e "${GREEN}✅ PST-Dependencies Installation abgeschlossen${NC}"
+
 # 6. Ollama installieren
 echo -e "\n${GREEN}🤖 Ollama wird überprüft...${NC}"
 if ! command -v ollama &> /dev/null; then

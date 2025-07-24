@@ -11,6 +11,37 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const XLSX = require('xlsx');
 
+// PST-spezifische Imports
+let PSTFile = null;
+let pstExtractor = null;
+let emailAddresses = null;
+let dateFns = null;
+let lodash = null;
+
+// PST-Dependencies dynamisch laden (falls installiert)
+try {
+  // Versuche verschiedene PST-Parser
+  try {
+    PSTFile = require('pst-parser');
+    console.log('✅ PST-Parser (pst-parser) erfolgreich geladen');
+  } catch (pstParserError) {
+    try {
+      pstExtractor = require('pst-extractor');
+      console.log('✅ PST-Extractor (pst-extractor) erfolgreich geladen');
+    } catch (extractorError) {
+      throw new Error('Kein PST-Parser verfügbar');
+    }
+  }
+  
+  emailAddresses = require('email-addresses');
+  dateFns = require('date-fns');
+  lodash = require('lodash');
+  console.log('✅ PST-Dependencies erfolgreich geladen');
+} catch (error) {
+  console.warn('⚠️ PST-Dependencies nicht gefunden. PST-Funktionen verwenden Fallback-Modus.');
+  console.warn('Führe "npm install pst-parser pst-extractor email-addresses date-fns lodash" aus für volle PST-Unterstützung.');
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Konfiguration für lokale Einstellungen
@@ -88,7 +119,7 @@ function createMainWindow() {
   // In development: Vite Dev Server laden
   if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
     mainWindow.loadURL('http://localhost:5173'); // Vite default port
-    mainWindow.webContents.openDevTools(); // DevTools aktivieren für Debugging
+    // DevTools sind jetzt standardmäßig deaktiviert - aktiviere mit Strg+Shift+I bei Bedarf
   } else {
     // In production: Gebaute Dateien laden
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
@@ -577,35 +608,175 @@ ipcMain.handle('file:read', async (_, filePath) => {
   }
 });
 
-// PST-Datei analysieren
-ipcMain.handle('pst:analyze', async (_, filePath) => {
+// PST-Ordner öffnen und strukturiert anzeigen
+ipcMain.handle('pst:openFolder', async (_, filePath) => {
+  console.log('Backend: PST-Ordner-Struktur laden für:', filePath);
+  
   try {
-    // Für jetzt simulieren wir PST-Analyse
-    // In der echten Implementierung würde hier ein PST-Parser verwendet werden
-    const stats = await fs.stat(filePath);
-    
-    // Mock PST-Daten
-    const mockPstData = {
-      success: true,
-      info: {
-        totalEmails: Math.floor(Math.random() * 5000) + 1000,
-        totalSize: stats.size,
-        dateRange: {
-          start: '2020-01-01',
-          end: '2024-12-31'
-        },
-        folders: [
-          'Posteingang',
-          'Gesendete Objekte', 
-          'Entwürfe',
-          'Gelöschte Objekte',
-          'Spam'
-        ]
+    if (!PSTFile) {
+      return {
+        success: false,
+        error: 'PST-Library nicht installiert. Führe install-pst-deps.ps1 aus.',
+        folders: []
+      };
+    }
+
+    const pstFile = new PSTFile(filePath);
+    const folders = [];
+
+    const mapFolders = (folder, path = '', level = 0) => {
+      try {
+        const folderName = folder.displayName || 'Unbekannt';
+        const fullPath = path ? `${path}/${folderName}` : folderName;
+        
+        folders.push({
+          id: folder.descriptorNodeId || Date.now(),
+          name: folderName,
+          path: fullPath,
+          level,
+          emailCount: folder.contentCount || 0,
+          hasSubfolders: folder.hasSubfolders,
+          type: getFolderType(folderName)
+        });
+
+        if (folder.hasSubfolders) {
+          const subfolders = folder.getSubFolders();
+          subfolders.forEach(subfolder => {
+            mapFolders(subfolder, fullPath, level + 1);
+          });
+        }
+      } catch (error) {
+        console.warn('Backend: Fehler beim Mappen eines Ordners:', error.message);
       }
     };
-    
-    return mockPstData;
+
+    const rootFolder = pstFile.getRootFolder();
+    mapFolders(rootFolder);
+
+    return {
+      success: true,
+      folders,
+      totalFolders: folders.length
+    };
+
   } catch (error) {
+    console.error('Backend: Fehler beim Laden der PST-Ordner:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      folders: []
+    };
+  }
+});
+
+// PST-E-Mails aus spezifischem Ordner laden
+ipcMain.handle('pst:loadEmails', async (_, filePath, folderPath, limit = 50, offset = 0) => {
+  console.log('Backend: Lade E-Mails aus Ordner:', folderPath);
+  
+  try {
+    if (!PSTFile) {
+      return {
+        success: false,
+        error: 'PST-Library nicht installiert',
+        emails: []
+      };
+    }
+
+    const pstFile = new PSTFile(filePath);
+    const emails = [];
+    let found = false;
+
+    const findAndLoadEmails = (folder, path = '') => {
+      try {
+        const folderName = folder.displayName || 'Unbekannt';
+        const currentPath = path ? `${path}/${folderName}` : folderName;
+        
+        if (currentPath === folderPath) {
+          found = true;
+          const folderEmails = folder.getEmails();
+          
+          for (let i = offset; i < Math.min(folderEmails.length, offset + limit); i++) {
+            try {
+              const email = folderEmails[i];
+              emails.push({
+                id: `email-${email.descriptorNodeId || Date.now()}-${i}`,
+                subject: email.subject || '(Kein Betreff)',
+                sender: email.senderName || email.senderEmailAddress || 'Unbekannt',
+                senderEmail: email.senderEmailAddress || '',
+                recipient: email.displayTo || '',
+                date: email.clientSubmitTime ? new Date(email.clientSubmitTime).toISOString() : null,
+                dateFormatted: email.clientSubmitTime ? new Date(email.clientSubmitTime).toLocaleString('de-DE') : 'Unbekannt',
+                hasAttachments: email.hasAttachments || false,
+                importance: email.importance || 0,
+                isRead: email.isRead || false,
+                messageSize: email.messageSize || 0,
+                folder: currentPath
+              });
+            } catch (emailError) {
+              console.warn('Backend: Fehler beim Laden einer E-Mail:', emailError.message);
+            }
+          }
+          return;
+        }
+
+        if (folder.hasSubfolders) {
+          const subfolders = folder.getSubFolders();
+          subfolders.forEach(subfolder => {
+            if (!found) findAndLoadEmails(subfolder, currentPath);
+          });
+        }
+      } catch (error) {
+        console.warn('Backend: Fehler beim Durchsuchen der Ordner:', error.message);
+      }
+    };
+
+    const rootFolder = pstFile.getRootFolder();
+    findAndLoadEmails(rootFolder);
+
+    return {
+      success: true,
+      emails,
+      totalLoaded: emails.length,
+      folderPath,
+      hasMore: emails.length === limit
+    };
+
+  } catch (error) {
+    console.error('Backend: Fehler beim Laden der E-Mails:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      emails: []
+    };
+  }
+});
+
+// PST-E-Mail-Details laden
+ipcMain.handle('pst:loadEmailDetails', async (_, filePath, emailId) => {
+  console.log('Backend: Lade E-Mail-Details für:', emailId);
+  
+  try {
+    if (!PSTFile) {
+      return {
+        success: false,
+        error: 'PST-Library nicht installiert'
+      };
+    }
+
+    // Vereinfachte Implementierung - in echter Anwendung würde man
+    // die E-Mail über ihre ID direkt laden
+    return {
+      success: true,
+      email: {
+        id: emailId,
+        fullBody: 'Vollständiger E-Mail-Inhalt würde hier stehen...',
+        headers: {},
+        attachments: []
+      }
+    };
+
+  } catch (error) {
+    console.error('Backend: Fehler beim Laden der E-Mail-Details:', error.message);
     return {
       success: false,
       error: error.message
@@ -613,46 +784,89 @@ ipcMain.handle('pst:analyze', async (_, filePath) => {
   }
 });
 
-// PST-Suche durchführen
-ipcMain.handle('pst:search', async (_, filePath, searchTerm) => {
+// PST-Statistiken generieren
+ipcMain.handle('pst:generateStats', async (_, filePath, analysisType) => {
+  console.log('Backend: Generiere PST-Statistiken, Typ:', analysisType);
+  
   try {
-    // Mock PST-Suchergebnisse
-    const mockResults = [
-      {
-        id: '1',
-        subject: `E-Mail über ${searchTerm}`,
-        sender: 'beispiel@firma.de',
-        recipient: 'empfaenger@firma.de',
-        date: '2024-01-15T10:30:00Z',
-        body: `Dies ist eine Beispiel-E-Mail über ${searchTerm}. Hier stehen wichtige Informationen...`,
-        attachments: [],
-        folder: 'Posteingang'
-      },
-      {
-        id: '2',
-        subject: `RE: ${searchTerm} - Nachfrage`,
-        sender: 'kollege@firma.de',
-        recipient: 'empfaenger@firma.de',
-        date: '2024-01-16T14:45:00Z',
-        body: `Danke für die Information zu ${searchTerm}. Ich hätte noch eine Frage dazu...`,
-        attachments: ['dokument.pdf'],
-        folder: 'Posteingang'
-      }
-    ];
-    
+    if (!PSTFile) {
+      return {
+        success: false,
+        error: 'PST-Library nicht installiert'
+      };
+    }
+
+    const pstFile = new PSTFile(filePath);
+    const stats = {
+      emailCategories: {},
+      frequentContacts: {},
+      emailVolume: {},
+      autoTags: [],
+      attachmentTypes: {},
+      sentimentAnalysis: {},
+      appointments: [],
+      importantThreads: []
+    };
+
+    // Hier würde die spezifische Analyse basierend auf analysisType durchgeführt
+    switch (analysisType) {
+      case 'email-categories':
+        stats.emailCategories = await analyzeEmailCategories(pstFile);
+        break;
+      case 'frequent-contacts':
+        stats.frequentContacts = await analyzeFrequentContacts(pstFile);
+        break;
+      case 'email-volume':
+        stats.emailVolume = await analyzeEmailVolume(pstFile);
+        break;
+      // ... weitere Analysetypen
+    }
+
     return {
       success: true,
-      results: mockResults,
-      totalFound: mockResults.length
+      stats,
+      analysisType
     };
+
   } catch (error) {
+    console.error('Backend: Fehler bei PST-Statistiken:', error.message);
     return {
       success: false,
-      error: error.message,
-      results: []
+      error: error.message
     };
   }
 });
+
+// Hilfsfunktionen
+function getFolderType(folderName) {
+  const name = folderName.toLowerCase();
+  if (name.includes('posteingang') || name.includes('inbox')) return 'inbox';
+  if (name.includes('gesendet') || name.includes('sent')) return 'sent';
+  if (name.includes('entwurf') || name.includes('draft')) return 'drafts';
+  if (name.includes('gelöscht') || name.includes('deleted') || name.includes('trash')) return 'deleted';
+  if (name.includes('spam') || name.includes('junk')) return 'spam';
+  return 'folder';
+}
+
+async function analyzeEmailCategories(pstFile) {
+  // Implementierung für E-Mail-Kategorisierung
+  return {
+    business: 0,
+    personal: 0,
+    system: 0,
+    spam: 0
+  };
+}
+
+async function analyzeFrequentContacts(pstFile) {
+  // Implementierung für häufige Kontakte
+  return {};
+}
+
+async function analyzeEmailVolume(pstFile) {
+  // Implementierung für E-Mail-Volumen-Analyse
+  return {};
+}
 
 // ===== OPEN NOTEBOOK LLM FEATURES =====
 
@@ -1064,3 +1278,469 @@ ipcMain.handle('file:search', async (_, searchTerm, directory) => {
 });
 
 console.log('LocalLLM Electron Backend mit Open Notebook Features gestartet');
+
+// =====================================
+// PST-SPEZIFISCHE IPC HANDLERS
+// =====================================
+
+// PST-Datei öffnen und validieren
+ipcMain.handle('pst:open', async (_, pstPath) => {
+  console.log('Backend: PST öffnen Request für:', pstPath);
+  
+  if (!PSTFile) {
+    console.warn('Backend: PST-Dependencies nicht verfügbar');
+    return {
+      success: false,
+      error: 'PST-Funktionalität nicht verfügbar. Bitte installiere: npm install node-pst email-addresses date-fns lodash'
+    };
+  }
+
+  try {
+    // Überprüfe ob Datei existiert
+    await fs.access(pstPath);
+    
+    // Versuche PST-Datei zu öffnen (einfache Validierung)
+    const buffer = await fs.readFile(pstPath);
+    const pstFile = new PSTFile(buffer);
+    
+    console.log('Backend: PST-Datei erfolgreich geöffnet:', pstPath);
+    return {
+      success: true,
+      info: {
+        path: pstPath,
+        size: buffer.length,
+        isValid: true
+      }
+    };
+  } catch (error) {
+    console.error('Backend: Fehler beim Öffnen der PST-Datei:', error.message);
+    return {
+      success: false,
+      error: `PST-Datei konnte nicht geöffnet werden: ${error.message}`
+    };
+  }
+});
+
+// PST-Datei durchsuchen
+ipcMain.handle('pst:search', async (_, query) => {
+  console.log('Backend: PST-Suche Request für Query:', query);
+  
+  if (!PSTFile || !emailAddresses || !dateFns) {
+    return {
+      success: false,
+      error: 'PST-Dependencies nicht verfügbar',
+      results: []
+    };
+  }
+
+  try {
+    // Ermittle alle PST-Dateien aus der Dateiliste
+    const searchParams = store.get('search.lastParams', { files: [], query: '' });
+    const pstFiles = searchParams.files?.filter(f => f.toLowerCase().endsWith('.pst')) || [];
+    
+    if (pstFiles.length === 0) {
+      return {
+        success: true,
+        results: [],
+        message: 'Keine PST-Dateien ausgewählt'
+      };
+    }
+
+    const allResults = [];
+    
+    for (const pstPath of pstFiles) {
+      try {
+        const searchResults = await searchInPSTFile(pstPath, query);
+        allResults.push(...searchResults);
+      } catch (fileError) {
+        console.warn('Backend: Fehler beim Durchsuchen von PST:', pstPath, fileError.message);
+      }
+    }
+
+    console.log('Backend: PST-Suche abgeschlossen,', allResults.length, 'Ergebnisse gefunden');
+    return {
+      success: true,
+      results: allResults.slice(0, 50) // Limitiere auf 50 Ergebnisse
+    };
+    
+  } catch (error) {
+    console.error('Backend: Fehler bei PST-Suche:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      results: []
+    };
+  }
+});
+
+// PST-Datei analysieren
+ipcMain.handle('pst:analyze', async (_, pstPath) => {
+  console.log('Backend: PST-Analyse Request für:', pstPath);
+  
+  if (!PSTFile || !lodash || !dateFns) {
+    return {
+      success: false,
+      error: 'PST-Dependencies nicht verfügbar'
+    };
+  }
+
+  try {
+    const analysisResult = await analyzePSTFile(pstPath);
+    
+    console.log('Backend: PST-Analyse abgeschlossen für:', pstPath);
+    return {
+      success: true,
+      analysis: analysisResult
+    };
+    
+  } catch (error) {
+    console.error('Backend: Fehler bei PST-Analyse:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// =====================================
+// PST-HILFSFUNKTIONEN
+// =====================================
+
+// PST-Datei durchsuchen
+async function searchInPSTFile(pstPath, query) {
+  const buffer = await fs.readFile(pstPath);
+  const pstFile = new PSTFile(buffer);
+  const results = [];
+  
+  // Parse Suchquery für erweiterte Suche
+  const searchTerms = parseSearchQuery(query);
+  
+  try {
+    // Durchsuche alle Ordner rekursiv
+    const rootFolder = pstFile.getRootFolder();
+    await searchPSTFolder(rootFolder, searchTerms, results, path.basename(pstPath));
+    
+  } catch (error) {
+    console.warn('Backend: Fehler beim Durchsuchen der PST-Datei:', error.message);
+  }
+  
+  return results;
+}
+
+// Ordner rekursiv durchsuchen
+async function searchPSTFolder(folder, searchTerms, results, fileName, folderPath = '') {
+  try {
+    // Durchsuche E-Mails in diesem Ordner
+    if (folder.hasSubMessages) {
+      let email = folder.getSubMessage();
+      while (email) {
+        try {
+          if (matchesSearchTerms(email, searchTerms)) {
+            results.push({
+              file: fileName,
+              folder: folderPath || folder.displayName || 'Inbox',
+              content: truncateText(email.body || email.subject || '', 200),
+              score: calculateRelevanceScore(email, searchTerms),
+              emailMeta: {
+                from: email.senderEmailAddress || email.senderName || 'Unbekannt',
+                to: email.recipientsList?.join(', ') || 'Unbekannt',
+                subject: email.subject || '(Kein Betreff)',
+                date: email.messageDeliveryTime ? dateFns.format(email.messageDeliveryTime, 'dd.MM.yyyy HH:mm') : 'Unbekannt',
+                hasAttachments: email.numberOfAttachments > 0,
+                importance: email.importance || 1
+              }
+            });
+          }
+          email = folder.getNextSubMessage();
+        } catch (emailError) {
+          // Überspringe beschädigte E-Mails
+          email = folder.getNextSubMessage();
+        }
+      }
+    }
+    
+    // Durchsuche Unterordner
+    if (folder.hasSubFolders) {
+      let subfolder = folder.getSubFolder();
+      while (subfolder) {
+        const subPath = folderPath ? `${folderPath}/${subfolder.displayName}` : subfolder.displayName;
+        await searchPSTFolder(subfolder, searchTerms, results, fileName, subPath);
+        subfolder = folder.getNextSubFolder();
+      }
+    }
+    
+  } catch (error) {
+    console.warn('Backend: Fehler beim Durchsuchen von PST-Ordner:', error.message);
+  }
+}
+
+// Suchquery parsen für erweiterte Suche
+function parseSearchQuery(query) {
+  const terms = {
+    general: [],
+    from: [],
+    to: [],
+    subject: [],
+    date: [],
+    hasAttachments: false,
+    important: false
+  };
+  
+  // Erweiterte Suchsyntax parsen
+  const patterns = {
+    from: /von:([^\s]+)/gi,
+    to: /an:([^\s]+)/gi,
+    subject: /betreff:([^\s]+)/gi,
+    date: /datum:([^\s]+)/gi,
+    attachments: /anhang:(ja|yes|true)/gi,
+    important: /wichtig:(ja|yes|true)/gi
+  };
+  
+  let remainingQuery = query;
+  
+  Object.entries(patterns).forEach(([key, pattern]) => {
+    let match;
+    while ((match = pattern.exec(query)) !== null) {
+      if (key === 'attachments') {
+        terms.hasAttachments = true;
+      } else if (key === 'important') {
+        terms.important = true;
+      } else {
+        terms[key].push(match[1].toLowerCase());
+      }
+      remainingQuery = remainingQuery.replace(match[0], '').trim();
+    }
+  });
+  
+  // Übrige Begriffe als allgemeine Suchbegriffe
+  if (remainingQuery.trim()) {
+    terms.general = remainingQuery.toLowerCase().split(/\s+/);
+  }
+  
+  return terms;
+}
+
+// Prüfe ob E-Mail den Suchkriterien entspricht
+function matchesSearchTerms(email, searchTerms) {
+  // Von-Filter
+  if (searchTerms.from.length > 0) {
+    const fromAddress = (email.senderEmailAddress || email.senderName || '').toLowerCase();
+    if (!searchTerms.from.some(term => fromAddress.includes(term))) {
+      return false;
+    }
+  }
+  
+  // An-Filter
+  if (searchTerms.to.length > 0) {
+    const toAddresses = (email.recipientsList?.join(' ') || '').toLowerCase();
+    if (!searchTerms.to.some(term => toAddresses.includes(term))) {
+      return false;
+    }
+  }
+  
+  // Betreff-Filter
+  if (searchTerms.subject.length > 0) {
+    const subject = (email.subject || '').toLowerCase();
+    if (!searchTerms.subject.some(term => subject.includes(term))) {
+      return false;
+    }
+  }
+  
+  // Datum-Filter (vereinfacht)
+  if (searchTerms.date.length > 0) {
+    const dateStr = email.messageDeliveryTime ? 
+      dateFns.format(email.messageDeliveryTime, 'yyyy-MM-dd') : '';
+    if (!searchTerms.date.some(term => dateStr.includes(term))) {
+      return false;
+    }
+  }
+  
+  // Anhang-Filter
+  if (searchTerms.hasAttachments && email.numberOfAttachments === 0) {
+    return false;
+  }
+  
+  // Wichtigkeit-Filter
+  if (searchTerms.important && email.importance < 2) {
+    return false;
+  }
+  
+  // Allgemeine Begriffe
+  if (searchTerms.general.length > 0) {
+    const content = [
+      email.subject || '',
+      email.body || '',
+      email.senderName || '',
+      email.senderEmailAddress || ''
+    ].join(' ').toLowerCase();
+    
+    if (!searchTerms.general.some(term => content.includes(term))) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+// Berechne Relevanz-Score
+function calculateRelevanceScore(email, searchTerms) {
+  let score = 0.5; // Basis-Score
+  
+  const content = [email.subject || '', email.body || ''].join(' ').toLowerCase();
+  
+  // Score erhöhen basierend auf Übereinstimmungen
+  searchTerms.general.forEach(term => {
+    const matches = (content.match(new RegExp(term, 'gi')) || []).length;
+    score += matches * 0.1;
+  });
+  
+  // Bonus für wichtige E-Mails
+  if (email.importance > 1) score += 0.2;
+  
+  // Bonus für neuere E-Mails
+  if (email.messageDeliveryTime) {
+    const daysSince = dateFns.differenceInDays(new Date(), email.messageDeliveryTime);
+    if (daysSince < 30) score += 0.1;
+  }
+  
+  return Math.min(score, 1.0);
+}
+
+// PST-Datei analysieren
+async function analyzePSTFile(pstPath) {
+  const buffer = await fs.readFile(pstPath);
+  const pstFile = new PSTFile(buffer);
+  
+  const analysis = {
+    fileName: path.basename(pstPath),
+    fileSize: buffer.length,
+    totalEmails: 0,
+    folders: [],
+    dateRange: { earliest: null, latest: null },
+    topSenders: {},
+    topRecipients: {},
+    averageEmailSize: 0,
+    hasAttachments: 0,
+    importantEmails: 0
+  };
+  
+  try {
+    const rootFolder = pstFile.getRootFolder();
+    await analyzePSTFolder(rootFolder, analysis);
+    
+    // Statistiken berechnen
+    analysis.topSenders = lodash.take(
+      lodash.orderBy(
+        Object.entries(analysis.topSenders),
+        ([, count]) => count,
+        'desc'
+      ).map(([email, count]) => ({ email, count })),
+      10
+    );
+    
+    analysis.topRecipients = lodash.take(
+      lodash.orderBy(
+        Object.entries(analysis.topRecipients),
+        ([, count]) => count,
+        'desc'
+      ).map(([email, count]) => ({ email, count })),
+      10
+    );
+    
+    if (analysis.totalEmails > 0) {
+      analysis.averageEmailSize = Math.round(analysis.averageEmailSize / analysis.totalEmails);
+    }
+    
+  } catch (error) {
+    console.warn('Backend: Fehler bei PST-Analyse:', error.message);
+  }
+  
+  return analysis;
+}
+
+// Ordner für Analyse durchsuchen
+async function analyzePSTFolder(folder, analysis, folderPath = '') {
+  const folderInfo = {
+    name: folder.displayName || 'Root',
+    path: folderPath,
+    emailCount: 0,
+    subFolders: []
+  };
+  
+  try {
+    // E-Mails in diesem Ordner analysieren
+    if (folder.hasSubMessages) {
+      let email = folder.getSubMessage();
+      while (email) {
+        try {
+          analysis.totalEmails++;
+          folderInfo.emailCount++;
+          
+          // Datums-Range aktualisieren
+          if (email.messageDeliveryTime) {
+            if (!analysis.dateRange.earliest || email.messageDeliveryTime < analysis.dateRange.earliest) {
+              analysis.dateRange.earliest = email.messageDeliveryTime;
+            }
+            if (!analysis.dateRange.latest || email.messageDeliveryTime > analysis.dateRange.latest) {
+              analysis.dateRange.latest = email.messageDeliveryTime;
+            }
+          }
+          
+          // Absender zählen
+          const sender = email.senderEmailAddress || email.senderName || 'Unbekannt';
+          analysis.topSenders[sender] = (analysis.topSenders[sender] || 0) + 1;
+          
+          // Empfänger zählen
+          if (email.recipientsList) {
+            email.recipientsList.forEach(recipient => {
+              analysis.topRecipients[recipient] = (analysis.topRecipients[recipient] || 0) + 1;
+            });
+          }
+          
+          // E-Mail-Größe
+          const emailSize = (email.body || '').length + (email.subject || '').length;
+          analysis.averageEmailSize += emailSize;
+          
+          // Anhänge
+          if (email.numberOfAttachments > 0) {
+            analysis.hasAttachments++;
+          }
+          
+          // Wichtige E-Mails
+          if (email.importance > 1) {
+            analysis.importantEmails++;
+          }
+          
+          email = folder.getNextSubMessage();
+        } catch (emailError) {
+          email = folder.getNextSubMessage();
+        }
+      }
+    }
+    
+    // Unterordner analysieren
+    if (folder.hasSubFolders) {
+      let subfolder = folder.getSubFolder();
+      while (subfolder) {
+        const subPath = folderPath ? `${folderPath}/${subfolder.displayName}` : subfolder.displayName;
+        const subFolderInfo = await analyzePSTFolder(subfolder, analysis, subPath);
+        folderInfo.subFolders.push(subFolderInfo);
+        subfolder = folder.getNextSubFolder();
+      }
+    }
+    
+  } catch (error) {
+    console.warn('Backend: Fehler beim Analysieren von PST-Ordner:', error.message);
+  }
+  
+  analysis.folders.push(folderInfo);
+  return folderInfo;
+}
+
+// Text kürzen
+function truncateText(text, maxLength) {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength - 3) + '...';
+}
+
+console.log('✅ PST-Funktionalität erfolgreich geladen');

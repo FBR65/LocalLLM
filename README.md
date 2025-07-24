@@ -6,6 +6,38 @@ Professionelle Desktop-Anwendung für lokale KI-Inferenz mit Ollama - Sicherheit
 
 LocalLLM Desktop ist eine moderne Desktop-Anwendung, die Large Language Models (LLMs) lokal über Ollama auf Ihrem Computer ausführt. Entwickelt mit **Electron** und **React**, bietet es eine professionelle Benutzeroberfläche für KI-gestützte Dokumentenanalyse, Chat-Funktionen und Content-Suche - alles ohne externe Server oder Cloud-Abhängigkeiten.
 
+## Screenshots
+
+### Chat-Interface
+
+![Chat Interface](images/l1.png)
+
+*Hauptchat-Interface mit direkter Ollama-Integration*
+
+### Quellenauswahl
+
+![Quellenauswahl](images/l2.png)
+
+*Dokumentenauswahl und Quellenmanagement*
+
+### Erweiterte Analysen
+
+![Erweiterte Analysen](images/l3.png)
+
+*Professionelle Dokumentenanalyse und Übersetzungsfunktionen*
+
+### PST Email-Archive
+
+![PST Email-Archive](images/l4.png)
+
+*Durchsuchen und Analysieren von Outlook PST-Dateien*
+
+### Content-Suche
+
+![Content-Suche](images/l5.png)
+
+*Intelligente Suche in Dokumenteninhalten*
+
 ## Features
 
 - **Desktop-Native**: Professionelle Electron-basierte Desktop-Anwendung

@@ -65,6 +65,30 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
+# 4.1. PST-Dependencies installieren
+Write-Host "`n📧 PST-Verarbeitungs-Abhängigkeiten werden installiert..." -ForegroundColor Green
+Write-Host "   (Für E-Mail-Archive und .pst-Dateien)" -ForegroundColor Cyan
+
+$pstPackages = @(
+    "pst-parser",
+    "pst-extractor", 
+    "email-addresses",
+    "date-fns",
+    "lodash"
+)
+
+foreach ($package in $pstPackages) {
+    Write-Host "📦 Installiere $package..." -ForegroundColor Yellow
+    npm install $package
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✅ $package erfolgreich installiert" -ForegroundColor Green
+    } else {
+        Write-Host "⚠️  $package konnte nicht installiert werden - PST-Funktionen möglicherweise eingeschränkt" -ForegroundColor Yellow
+    }
+}
+
+Write-Host "✅ PST-Dependencies Installation abgeschlossen" -ForegroundColor Green
+
 # 5. Ollama überprüfen und installieren
 Write-Host "`n🤖 Ollama wird überprüft..." -ForegroundColor Green
 if (!(Get-Command ollama -ErrorAction SilentlyContinue)) {
