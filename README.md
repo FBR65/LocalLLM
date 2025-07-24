@@ -55,18 +55,18 @@ LocalLLM Desktop ist eine moderne Desktop-Anwendung, die Large Language Models (
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                  Electron Desktop App                   │
-│  ┌─────────────────┐  ┌─────────────────┐              │
+│  ┌──────────────────┐  ┌─────────────────┐              │
 │  │   React Frontend │  │ Electron Main   │              │
 │  │  (TypeScript)    │  │   Process       │              │
-│  │                 │  │                 │              │
+│  │                  │  │                 │              │
 │  │ • UI Components  │  │ • File System   │              │
 │  │ • State Mgmt     │  │ • Window Mgmt   │              │
-│  │ • Professional  │  │ • Document      │              │
+│  │ • Professional   │  │ • Document      │              │
 │  │   Design         │  │   Processing    │              │
-│  └─────────────────┘  └─────────────────┘              │
-│           │                     │                        │
-│           └─────────┬───────────┘                        │
-│                     │                                    │
+│  └──────────────────┘  └─────────────────┘              │
+│           │                     │                       │
+│           └─────────┬───────────┘                       │
+│                     │                                   │
 │           ┌─────────────────┐                           │
 │           │  Ollama Server  │                           │
 │           │   (localhost)   │                           │
