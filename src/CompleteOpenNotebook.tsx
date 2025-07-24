@@ -498,60 +498,63 @@ function CompleteOpenNotebook() {
               <div className="mb-4">
                 <h3 className="text-sm font-medium mb-2">Analyse-Optionen</h3>
                 <div className="space-y-2">
-                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm">
-                    📊 Zusammenfassung erstellen
+                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm border border-gray-200">
+                    Zusammenfassung erstellen
                   </button>
-                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm">
-                    🧠 Insights generieren
+                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm border border-gray-200">
+                    Insights generieren
                   </button>
-                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm">
-                    🎙️ Podcast erstellen
+                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm border border-gray-200">
+                    Podcast erstellen
                   </button>
-                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm">
-                    📈 Datenanalyse
+                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm border border-gray-200">
+                    Datenanalyse durchführen
                   </button>
-                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm">
-                    🔍 Tiefenanalyse
+                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm border border-gray-200">
+                    Tiefenanalyse starten
                   </button>
-                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm">
-                    📋 Bericht generieren
+                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm border border-gray-200">
+                    Detaillierten Bericht generieren
                   </button>
-                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm">
-                    🎯 Schlüsselwörter extrahieren
+                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm border border-gray-200">
+                    Schlüsselwörter extrahieren
                   </button>
-                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm">
-                    📝 Notizen erstellen
+                  <button className="w-full p-2 text-left bg-gray-50 rounded-lg hover:bg-gray-100 text-sm border border-gray-200">
+                    Strukturierte Notizen erstellen
                   </button>
                 </div>
               </div>
 
               <div className="mb-4">
-                <h3 className="text-sm font-medium mb-2">Übersetzungsoptionen</h3>
+                <h3 className="text-sm font-medium mb-2">Übersetzung nach Deutsch</h3>
                 <div className="space-y-2">
-                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm">
-                    🇩🇪→🇺🇸 Deutsch → Englisch
+                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm border border-blue-200">
+                    Englisch → Deutsch
                   </button>
-                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm">
-                    🇺🇸→🇩🇪 Englisch → Deutsch
+                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm border border-blue-200">
+                    Französisch → Deutsch
                   </button>
-                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm">
-                    🇩🇪→🇫🇷 Deutsch → Französisch
+                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm border border-blue-200">
+                    Spanisch → Deutsch
                   </button>
-                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm">
-                    🇩🇪→🇪🇸 Deutsch → Spanisch
+                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm border border-blue-200">
+                    Italienisch → Deutsch
                   </button>
-                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm">
-                    🇩🇪→🇮🇹 Deutsch → Italienisch
+                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm border border-blue-200">
+                    Portugiesisch → Deutsch
                   </button>
-                  <button className="w-full p-2 text-left bg-blue-50 rounded-lg hover:bg-blue-100 text-sm">
-                    🌐 Automatische Erkennung
+                  <button className="w-full p-2 text-left bg-green-50 rounded-lg hover:bg-green-100 text-sm border border-green-200">
+                    Deutsch → Zielsprache wählen
+                  </button>
+                  <button className="w-full p-2 text-left bg-purple-50 rounded-lg hover:bg-purple-100 text-sm border border-purple-200">
+                    Automatische Spracherkennung
                   </button>
                 </div>
               </div>
               
               <div className="text-center p-4 text-slate-500">
                 <Brain size={32} className="mx-auto mb-2 opacity-50" />
-                <p className="text-xs">Erweiterte Analyse & Übersetzung</p>
+                <p className="text-xs font-medium">Erweiterte Analyse & Übersetzung</p>
                 <p className="text-xs mt-1">
                   {selectedFiles.length > 0 
                     ? `${selectedFiles.length} Datei(en) bereit`
@@ -645,9 +648,9 @@ function CompleteOpenNotebook() {
                 </p>
                 <div className="text-sm text-gray-500">
                   {ollamaStatus.connected ? (
-                    <>✅ Bereit für Chat mit {selectedModel}</>
+                    <>Bereit für Chat mit {selectedModel}</>
                   ) : (
-                    <>❌ Ollama nicht verbunden</>
+                    <>Ollama nicht verbunden</>
                   )}
                 </div>
               </div>
@@ -751,7 +754,7 @@ function CompleteOpenNotebook() {
           
           {selectedFiles.length > 0 && (
             <div className="mt-2 text-sm text-gray-600">
-              💡 {selectedFiles.length} Datei(en) werden in den Kontext einbezogen
+              {selectedFiles.length} Datei(en) werden in den Kontext einbezogen
             </div>
           )}
         </div>
