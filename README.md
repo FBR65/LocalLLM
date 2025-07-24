@@ -57,10 +57,40 @@ LocalLLM Desktop ist eine moderne Desktop-Anwendung, die Large Language Models (
 
 ### Schnellstart
 
+#### Option 1: Automatische Installation (Empfohlen)
+
+**Windows:**
+```powershell
+# PowerShell als Administrator öffnen
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/FBR65/LocalLLM/master/install.ps1" -OutFile "install.ps1"
+.\install.ps1
+
+# Mit Optionen:
+.\install.ps1 -DevMode          # Startet automatisch Development-Modus
+.\install.ps1 -NoModels         # Überspringt Model-Download
+.\install.ps1 -InstallPath "C:\MyApps\LocalLLM"  # Benutzerdefinierter Pfad
+```
+
+**Linux/macOS:**
+```bash
+# Installation starten
+curl -fsSL https://raw.githubusercontent.com/FBR65/LocalLLM/master/install.sh | bash
+
+# Oder mit Optionen:
+wget https://raw.githubusercontent.com/FBR65/LocalLLM/master/install.sh
+chmod +x install.sh
+./install.sh --dev-mode        # Startet automatisch Development-Modus
+./install.sh --no-models       # Überspringt Model-Download
+./install.sh --install-path ~/MyApps/LocalLLM  # Benutzerdefinierter Pfad
+```
+
+#### Option 2: Manuelle Installation
+
 1. **Repository klonen**:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/FBR65/LocalLLM.git
 cd LocalLLM
 ```
 
@@ -73,17 +103,82 @@ npm install
 3. **Ollama installieren und starten**:
 
 ```bash
-# Ollama von https://ollama.ai herunterladen und installieren
+# Windows (winget)
+winget install Ollama.Ollama
+
+# macOS (Homebrew)
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Ollama starten und Modelle herunterladen
 ollama serve
 ollama pull gemma3:latest
 ollama pull phi4-mini:latest
+ollama pull qwen2.5:latest
 ```
 
-4. **Entwicklungsumgebung starten**:
+4. **Startscripts ausführbar machen (Linux/macOS)**:
 
 ```bash
-npm run dev
+chmod +x start-dev.sh
+chmod +x start.sh
+chmod +x install.sh
 ```
+
+#### Nach der Installation
+
+**Windows:**
+```powershell
+# Development-Modus
+.\start-dev.ps1
+
+# Production-Modus
+.\start.ps1
+
+# Oder Desktop-Verknüpfung verwenden
+```
+
+**Linux/macOS:**
+```bash
+# Development-Modus
+./start-dev.sh
+
+# Production-Modus
+./start.sh
+```
+
+### Verfügbare Scripts
+
+Nach der Installation stehen folgende Scripts zur Verfügung:
+
+**Windows PowerShell:**
+- `install.ps1` - Vollautomatische Installation
+- `start-dev.ps1` - Development-Server starten  
+- `start.ps1` - Production-App starten
+
+**Linux/macOS Bash:**
+- `install.sh` - Vollautomatische Installation
+- `start-dev.sh` - Development-Server starten
+- `start.sh` - Production-App starten
+
+**Installationsoptionen:**
+```powershell
+# Windows
+.\install.ps1 -DevMode -NoModels -InstallPath "C:\LocalLLM"
+
+# Linux/macOS  
+./install.sh --dev-mode --no-models --install-path ~/LocalLLM
+```
+
+**Script-Features:**
+- ✅ Automatische Dependency-Installation (Node.js, Git, Ollama)
+- ✅ Repository-Kloning und Updates
+- ✅ Model-Download (gemma3, phi4-mini, qwen2.5)
+- ✅ Desktop-Verknüpfungen erstellen
+- ✅ Service-Management (Ollama Auto-Start)
+- ✅ Fehlerbehandlung und Status-Anzeige
 
 ### Produktions-Build
 
