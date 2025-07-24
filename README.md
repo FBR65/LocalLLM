@@ -24,13 +24,13 @@ LocalLLM Desktop ist eine moderne Desktop-Anwendung, die Large Language Models (
 ┌─────────────────────────────────────────────────────────┐
 │                  Electron Desktop App                   │
 │  ┌─────────────────┐  ┌─────────────────┐              │
-│  │   React Frontend │  │ Python Backend  │              │
-│  │  (TypeScript)    │  │   (FastAPI)     │              │
+│  │   React Frontend │  │ Electron Main   │              │
+│  │  (TypeScript)    │  │   Process       │              │
 │  │                 │  │                 │              │
 │  │ • UI Components  │  │ • File System   │              │
-│  │ • State Mgmt     │  │ • Document      │              │
-│  │ • Professional  │  │   Processing    │              │
-│  │   Design         │  │ • PDF Parser    │              │
+│  │ • State Mgmt     │  │ • Window Mgmt   │              │
+│  │ • Professional  │  │ • Document      │              │
+│  │   Design         │  │   Processing    │              │
 │  └─────────────────┘  └─────────────────┘              │
 │           │                     │                        │
 │           └─────────┬───────────┘                        │
@@ -52,7 +52,6 @@ LocalLLM Desktop ist eine moderne Desktop-Anwendung, die Large Language Models (
 ### Voraussetzungen
 
 - **Node.js 18+** (für Electron Frontend)
-- **Python 3.10+** (für Backend)
 - **Ollama** (für KI-Modelle)
 - **Moderner Desktop** (Windows, macOS, Linux)
 
@@ -65,23 +64,13 @@ git clone <repository-url>
 cd LocalLLM
 ```
 
-2. **Python-Umgebung einrichten**:
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-# oder
-source .venv/bin/activate  # macOS/Linux
-pip install -r requirements.txt
-```
-
-3. **Node.js-Dependencies installieren**:
+2. **Node.js-Dependencies installieren**:
 
 ```bash
 npm install
 ```
 
-4. **Ollama installieren und starten**:
+3. **Ollama installieren und starten**:
 
 ```bash
 # Ollama von https://ollama.ai herunterladen und installieren
@@ -90,7 +79,7 @@ ollama pull gemma3:latest
 ollama pull phi4-mini:latest
 ```
 
-5. **Entwicklungsumgebung starten**:
+4. **Entwicklungsumgebung starten**:
 
 ```bash
 npm run dev
@@ -160,26 +149,21 @@ Das System bietet professionelle Übersetzungsoptionen:
 
 ### Projektstruktur
 
-```
+```text
 LocalLLM/
 ├── src/                      # React Frontend (TypeScript)
 │   ├── CompleteOpenNotebook.tsx  # Haupt-UI-Komponente
 │   ├── App.tsx              # React-Anwendung
-│   └── main.tsx             # Electron-Renderer-Einstieg
+│   └── main.tsx             # React-Einstiegspunkt
 ├── electron/                # Electron-Backend
 │   ├── main.js              # Electron-Hauptprozess
 │   └── preload.js           # Preload-Script
-├── src/localllm/           # Python-Backend
-│   ├── server.py           # FastAPI-Server
-│   ├── core.py             # KI-Kernfunktionen
-│   ├── document_processor.py  # Dokumenten-Verarbeitung
-│   └── models.py           # Model-Management
 ├── frontend/               # Statische Assets
 │   ├── templates/
 │   └── static/
 ├── documents/              # Dokument-Speicher
 ├── package.json           # Node.js-Dependencies
-└── main.py                # Python-Backend-Einstieg
+└── vite.config.ts         # Vite-Konfiguration
 ```
 
 ### Entwicklungsbefehle
@@ -187,9 +171,6 @@ LocalLLM/
 ```bash
 # Frontend-Entwicklung (Vite)
 npm run dev
-
-# Python-Backend starten
-python main.py --reload --debug
 
 # Electron-App im Dev-Modus
 npm run electron:dev
@@ -206,8 +187,7 @@ npm test
 
 - **Electron IPC**: Frontend-zu-Backend-Kommunikation
 - **Ollama API**: HTTP-Requests an localhost:11434
-- **FastAPI**: Python-Backend für Dokumenten-Verarbeitung
-- **File System**: Sichere lokale Dateizugriffe
+- **File System**: Sichere lokale Dateizugriffe über Electron
 
 ## Ollama-Modelle
 
@@ -254,10 +234,10 @@ Die verfügbaren Modelle werden automatisch erkannt und angezeigt:
 - **Vite** als Build-Tool
 
 ### Backend-Stack
+
 - **Electron** für Desktop-Integration
-- **Python FastAPI** für Backend-Services
-- **pdf-parse** für PDF-Verarbeitung
-- **mammoth** für DOCX-Verarbeitung
+- **Document Processing** über Browser-APIs (PDF.js, etc.)
+- **Ollama** für KI-Inferenz
 
 ### Systemanforderungen
 - **Windows 10+, macOS 10.15+, oder Linux**
